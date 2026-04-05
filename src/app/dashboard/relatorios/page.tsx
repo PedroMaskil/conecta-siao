@@ -100,9 +100,12 @@ export default function DashboardRelatoriosPage() {
 
     setSalvando(true)
 
+    const hoje = new Date().toISOString().split('T')[0]
+
     const payload = {
       celula_id: celula.id,
       lider_id: perfil.id,
+      data_referencia: hoje,
       dia_semana_celula: diaSemanaCelula,
       realizou_celula: realizouCelula,
       total_presentes: realizouCelula ? Number(totalPresentes) : 0,
@@ -219,8 +222,16 @@ export default function DashboardRelatoriosPage() {
                       Quando a célula aconteceu ou deveria ter acontecido?
                     </label>
 
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
-                      {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((dia) => (
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-7">
+                      {[
+                        'Segunda',
+                        'Terça',
+                        'Quarta',
+                        'Quinta',
+                        'Sexta',
+                        'Sábado',
+                        'Domingo',
+                      ].map((dia) => (
                         <button
                           key={dia}
                           type="button"
