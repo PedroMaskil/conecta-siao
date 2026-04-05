@@ -270,9 +270,11 @@ export default function DashboardCelulaPage() {
               >
                 <option value="">Selecione</option>
                 <option>Kids</option>
-                <option>Casais</option>
-                <option>Solteiros</option>
-                <option>Solteiras</option>
+                <option>Mista</option>
+                <option>Adolescentes</option>
+                <option>Rapazes</option>
+<option>Moças</option>
+<option>Par</option>
               </select>
             </div>
 
