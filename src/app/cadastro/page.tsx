@@ -28,29 +28,46 @@ export default function Cadastro() {
     })
 
     if (error) {
-      alert('Erro: ' + error.message)
+      if (
+        error.message.toLowerCase().includes('already registered') ||
+        error.message.toLowerCase().includes('already been registered')
+      ) {
+        alert('Este e-mail já está cadastrado.')
+      } else {
+        alert('Erro ao cadastrar: ' + error.message)
+      }
+
       setLoading(false)
       return
     }
 
     const user = data.user
 
+    if (!user) {
+      alert('Não foi possível criar o usuário.')
+      setLoading(false)
+      return
+    }
+
     const { error: errorDb } = await supabase
       .from('usuarios')
       .insert([
         {
-          id: user?.id,
+          id: user.id,
           nome,
           idade: Number(idade),
           telefone,
           email,
           endereco,
-          tipo: 'lider'
+          is_lider: false,
+          is_supervisor: false,
+          is_secretaria: false,
+          is_super_admin: false
         }
       ])
 
     if (errorDb) {
-      alert('Erro ao salvar dados')
+      alert('Erro ao salvar os dados do usuário.')
       setLoading(false)
       return
     }
