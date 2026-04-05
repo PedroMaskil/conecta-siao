@@ -8,23 +8,18 @@ export default function AdministracaoPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [usuarios, setUsuarios] = useState<any[]>([])
-  const [celulas, setCelulas] = useState<any[]>([])
-  const [relatorios, setRelatorios] = useState<any[]>([])
-
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState('todos')
 
   useEffect(() => {
-    async function load() {
-      const { data: users } = await supabase.from('usuarios').select('*')
-      const { data: cells } = await supabase.from('celulas').select('*')
-      const { data: reports } = await supabase.from('relatorios').select('*')
+    setTimeout(() => setMounted(true), 80)
 
-      setUsuarios(users || [])
-      setCelulas(cells || [])
-      setRelatorios(reports || [])
+    async function load() {
+      const { data } = await supabase.from('usuarios').select('*')
+      setUsuarios(data || [])
       setLoading(false)
     }
 
@@ -52,124 +47,122 @@ export default function AdministracaoPage() {
     )
   }
 
-  const totalLideres = usuarios.filter((u) => u.is_lider).length
-  const totalSupervisores = usuarios.filter((u) => u.is_supervisor).length
-  const celulasSemSupervisor = celulas.filter((c) => !c.supervisor_id).length
-
   if (loading) return <div className="p-10">Carregando...</div>
 
   return (
-    <div className="min-h-screen bg-slate-100 p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
+      
+      {/* BACKGROUND */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-green-200/30 blur-3xl" />
+        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-100/40 blur-3xl" />
+      </div>
 
-        {/* HEADER */}
-        <div className="bg-white p-6 rounded-2xl shadow flex justify-between">
-          <div>
-            <h1 className="text-3xl font-bold">Administração</h1>
-            <p className="text-slate-500 text-sm">
-              Controle total do sistema
-            </p>
-          </div>
+      <div className="relative z-10 flex justify-center">
+        <div
+          className={`w-full max-w-6xl transition-all duration-700 ${
+            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+          }`}
+        >
+          <div className="rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl overflow-hidden">
 
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="bg-slate-800 text-white px-4 py-2 rounded-xl"
-          >
-            Voltar
-          </button>
-        </div>
-
-        {/* STATS */}
-        <div className="grid md:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow">
-            <p className="text-sm text-slate-500">Líderes</p>
-            <h2 className="text-2xl font-bold">{totalLideres}</h2>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl shadow">
-            <p className="text-sm text-slate-500">Supervisores</p>
-            <h2 className="text-2xl font-bold">{totalSupervisores}</h2>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl shadow">
-            <p className="text-sm text-slate-500">Sem Supervisor</p>
-            <h2 className="text-2xl font-bold">{celulasSemSupervisor}</h2>
-          </div>
-        </div>
-
-        {/* FILTROS */}
-        <div className="bg-white p-5 rounded-2xl shadow flex flex-col md:flex-row gap-4">
-          <input
-            placeholder="Buscar usuário..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            className="border p-3 rounded-xl w-full"
-          />
-
-          <select
-            value={filtro}
-            onChange={(e) => setFiltro(e.target.value)}
-            className="border p-3 rounded-xl"
-          >
-            <option value="todos">Todos</option>
-            <option value="lider">Líderes</option>
-            <option value="supervisor">Supervisores</option>
-          </select>
-        </div>
-
-        {/* USUÁRIOS */}
-        <div className="bg-white p-6 rounded-2xl shadow">
-          <h2 className="text-xl font-bold mb-4">Gestão de Usuários</h2>
-
-          <div className="space-y-3">
-            {usuariosFiltrados.map((user) => (
-              <div
-                key={user.id}
-                className="border p-4 rounded-xl flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-semibold">{user.nome}</p>
-                  <p className="text-sm text-slate-500">{user.email}</p>
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      togglePermissao(
-                        user.id,
-                        'is_lider',
-                        !user.is_lider
-                      )
-                    }
-                    className={`px-3 py-2 rounded-xl text-white ${
-                      user.is_lider ? 'bg-red-500' : 'bg-green-600'
-                    }`}
-                  >
-                    {user.is_lider ? 'Remover Líder' : 'Tornar Líder'}
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      togglePermissao(
-                        user.id,
-                        'is_supervisor',
-                        !user.is_supervisor
-                      )
-                    }
-                    className={`px-3 py-2 rounded-xl text-white ${
-                      user.is_supervisor ? 'bg-red-500' : 'bg-blue-600'
-                    }`}
-                  >
-                    {user.is_supervisor
-                      ? 'Remover Supervisor'
-                      : 'Tornar Supervisor'}
-                  </button>
-                </div>
+            {/* HEADER */}
+            <div className="bg-gradient-to-r from-green-600 to-emerald-500 px-8 py-6 text-white flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold">Administração</h1>
+                <p className="text-sm text-green-50">
+                  Gestão de usuários e permissões
+                </p>
               </div>
-            ))}
+
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="bg-white/20 px-4 py-2 rounded-xl hover:bg-white/30 transition"
+              >
+                Voltar
+              </button>
+            </div>
+
+            {/* CONTENT */}
+            <div className="p-8 space-y-6">
+
+              {/* FILTRO */}
+              <div className="flex flex-col md:flex-row gap-4">
+                <input
+                  placeholder="Buscar usuário..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-4 focus:ring-green-100 focus:border-green-500"
+                />
+
+                <select
+                  value={filtro}
+                  onChange={(e) => setFiltro(e.target.value)}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                >
+                  <option value="todos">Todos</option>
+                  <option value="lider">Líderes</option>
+                  <option value="supervisor">Supervisores</option>
+                </select>
+              </div>
+
+              {/* LISTA */}
+              <div className="space-y-3">
+                {usuariosFiltrados.map((user) => (
+                  <div
+                    key={user.id}
+                    className="rounded-2xl border border-slate-200 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 hover:shadow-lg transition"
+                  >
+                    <div>
+                      <p className="font-semibold text-slate-800">{user.nome}</p>
+                      <p className="text-sm text-slate-500">{user.email}</p>
+                    </div>
+
+                    <div className="flex gap-2 flex-wrap">
+                      <button
+                        onClick={() =>
+                          togglePermissao(
+                            user.id,
+                            'is_lider',
+                            !user.is_lider
+                          )
+                        }
+                        className={`px-3 py-2 rounded-xl text-white text-sm ${
+                          user.is_lider
+                            ? 'bg-red-500'
+                            : 'bg-green-600'
+                        }`}
+                      >
+                        {user.is_lider ? 'Remover Líder' : 'Tornar Líder'}
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          togglePermissao(
+                            user.id,
+                            'is_supervisor',
+                            !user.is_supervisor
+                          )
+                        }
+                        className={`px-3 py-2 rounded-xl text-white text-sm ${
+                          user.is_supervisor
+                            ? 'bg-red-500'
+                            : 'bg-blue-600'
+                        }`}
+                      >
+                        {user.is_supervisor
+                          ? 'Remover Supervisor'
+                          : 'Tornar Supervisor'}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+            </div>
           </div>
         </div>
-
       </div>
     </div>
   )
