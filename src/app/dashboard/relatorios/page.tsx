@@ -27,8 +27,7 @@ export default function DashboardRelatoriosPage() {
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
   const [celula, setCelula] = useState<Celula | null>(null)
 
-  const [dataReferencia, setDataReferencia] = useState('')
-  const [dataPrevistaCelula, setDataPrevistaCelula] = useState('')
+  const [diaSemanaCelula, setDiaSemanaCelula] = useState('')
   const [realizouCelula, setRealizouCelula] = useState(true)
   const [totalPresentes, setTotalPresentes] = useState('')
   const [visitantes, setVisitantes] = useState('')
@@ -82,8 +81,8 @@ export default function DashboardRelatoriosPage() {
   async function handleSalvarRelatorio() {
     if (!perfil || !celula) return
 
-    if (!dataReferencia || !dataPrevistaCelula) {
-      alert('Preencha a data de referência e a data prevista da célula.')
+    if (!diaSemanaCelula) {
+      alert('Selecione o dia da semana da célula.')
       return
     }
 
@@ -104,8 +103,7 @@ export default function DashboardRelatoriosPage() {
     const payload = {
       celula_id: celula.id,
       lider_id: perfil.id,
-      data_referencia: dataReferencia,
-      data_prevista_celula: dataPrevistaCelula,
+      dia_semana_celula: diaSemanaCelula,
       realizou_celula: realizouCelula,
       total_presentes: realizouCelula ? Number(totalPresentes) : 0,
       visitantes: realizouCelula ? Number(visitantes) : 0,
@@ -123,8 +121,7 @@ export default function DashboardRelatoriosPage() {
       return
     }
 
-    setDataReferencia('')
-    setDataPrevistaCelula('')
+    setDiaSemanaCelula('')
     setRealizouCelula(true)
     setTotalPresentes('')
     setVisitantes('')
@@ -202,7 +199,7 @@ export default function DashboardRelatoriosPage() {
                 </h2>
 
                 <p className="mb-6 text-sm text-slate-500">
-                  Informe se a célula foi realizada e preencha os dados conforme a situação.
+                  Informe se a célula foi realizada nesta semana.
                 </p>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -217,28 +214,27 @@ export default function DashboardRelatoriosPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Data de referência
+                  <div className="md:col-span-2">
+                    <label className="mb-3 block text-sm font-medium text-slate-700">
+                      Quando a célula aconteceu ou deveria ter acontecido?
                     </label>
-                    <input
-                      type="date"
-                      value={dataReferencia}
-                      onChange={(e) => setDataReferencia(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
 
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Data prevista da célula
-                    </label>
-                    <input
-                      type="date"
-                      value={dataPrevistaCelula}
-                      onChange={(e) => setDataPrevistaCelula(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                    />
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+                      {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].map((dia) => (
+                        <button
+                          key={dia}
+                          type="button"
+                          onClick={() => setDiaSemanaCelula(dia)}
+                          className={`rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                            diaSemanaCelula === dia
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                        >
+                          {dia}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="md:col-span-2">
