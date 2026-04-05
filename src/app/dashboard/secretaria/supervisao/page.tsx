@@ -6,16 +6,13 @@ import { createClient } from '@/utils/supabase/client'
 
 type Usuario = {
   id: string
-  codigo?: number | null
   nome: string
   email: string
-  is_lider?: boolean | null
   is_supervisor?: boolean | null
 }
 
 type Celula = {
   id: string
-  codigo?: number | null
   nome: string
   lider_id: string | null
   supervisor_id: string | null
@@ -63,14 +60,8 @@ export default function SupervisaoPage() {
       }
 
       const [{ data: usuariosData }, { data: celulasData }] = await Promise.all([
-        supabase
-          .from('usuarios')
-          .select('id, codigo, nome, email, is_lider, is_supervisor')
-          .order('nome', { ascending: true }),
-        supabase
-          .from('celulas')
-          .select('id, codigo, nome, lider_id, supervisor_id, endereco, quantidade_pessoas, tipo_celula, dia_semana, atualizado_em')
-          .order('nome', { ascending: true }),
+        supabase.from('usuarios').select('*'),
+        supabase.from('celulas').select('*'),
       ])
 
       setUsuarios(usuariosData || [])
@@ -82,55 +73,42 @@ export default function SupervisaoPage() {
   }, [router, supabase])
 
   const supervisores = useMemo(() => {
-    return usuarios.filter((usuario) => usuario.is_supervisor === true)
+    return usuarios.filter((u) => u.is_supervisor)
   }, [usuarios])
 
   const celulasFiltradas = useMemo(() => {
     const termo = busca.toLowerCase()
 
-    return celulas.filter((celula) => {
-      const lider = usuarios.find((u) => u.id === celula.lider_id)
-      const supervisor = usuarios.find((u) => u.id === celula.supervisor_id)
+    return celulas.filter((c) => {
+      const lider = usuarios.find((u) => u.id === c.lider_id)
+      const supervisor = usuarios.find((u) => u.id === c.supervisor_id)
 
       return (
-        celula.nome.toLowerCase().includes(termo) ||
+        c.nome.toLowerCase().includes(termo) ||
         (lider?.nome || '').toLowerCase().includes(termo) ||
         (supervisor?.nome || '').toLowerCase().includes(termo)
       )
     })
   }, [busca, celulas, usuarios])
 
-  const totalCelulas = celulas.length
-  const celulasSemSupervisor = celulas.filter((c) => !c.supervisor_id).length
-  const totalSupervisores = supervisores.length
-
   function getNomeUsuario(id: string | null) {
-    if (!id) return 'Não definido'
-    const usuario = usuarios.find((item) => item.id === id)
-    return usuario ? usuario.nome : 'Não encontrado'
+    if (!id) return '-'
+    return usuarios.find((u) => u.id === id)?.nome || '-'
   }
 
-  async function atualizarSupervisorDaCelula(celulaId: string, supervisorId: string) {
+  async function atualizarSupervisor(celulaId: string, supervisorId: string) {
     setSalvandoCelulaId(celulaId)
 
-    const valorFinal = supervisorId === '' ? null : supervisorId
+    const valor = supervisorId || null
 
-    const { error } = await supabase
+    await supabase
       .from('celulas')
-      .update({ supervisor_id: valorFinal })
+      .update({ supervisor_id: valor })
       .eq('id', celulaId)
 
-    if (error) {
-      alert('Erro ao atualizar supervisor da célula.')
-      setSalvandoCelulaId(null)
-      return
-    }
-
-    setCelulas((atuais) =>
-      atuais.map((celula) =>
-        celula.id === celulaId
-          ? { ...celula, supervisor_id: valorFinal }
-          : celula
+    setCelulas((prev) =>
+      prev.map((c) =>
+        c.id === celulaId ? { ...c, supervisor_id: valor } : c
       )
     )
 
@@ -139,187 +117,73 @@ export default function SupervisaoPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+      <div className="min-h-screen flex items-center justify-center">
         Carregando...
       </div>
     )
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-orange-200/30 blur-3xl" />
-        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-amber-200/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-orange-100/40 blur-3xl" />
-      </div>
+    <div className="min-h-screen bg-slate-100 px-3 py-6 sm:px-4 sm:py-10">
+      <div className="mx-auto max-w-6xl">
 
-      <div className="relative z-10 flex justify-center">
-        <div
-          className={`w-full max-w-7xl transition-all duration-700 ${
-            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
-          }`}
-        >
-          <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-500 px-8 py-6 text-white">
-              <div>
-                <h1 className="text-3xl font-bold">Atribuir supervisão</h1>
-                <p className="text-sm text-orange-50">
-                  Defina qual supervisor acompanha cada célula
+        {/* HEADER */}
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-orange-500 p-4 text-white sm:p-6 md:flex-row md:justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
+              Supervisão
+            </h1>
+            <p className="text-sm">Atribuir supervisores</p>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="rounded-xl bg-white/20 px-4 py-2 text-sm"
+            >
+              Voltar
+            </button>
+          </div>
+        </div>
+
+        {/* BUSCA */}
+        <input
+          placeholder="Buscar célula..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+          className="mb-6 w-full rounded-xl border p-3"
+        />
+
+        {/* LISTA */}
+        <div className="space-y-4">
+          {celulasFiltradas.map((c) => (
+            <div key={c.id} className="rounded-xl bg-white p-4 shadow">
+              
+              <div className="mb-3">
+                <h2 className="font-bold text-slate-800">{c.nome}</h2>
+                <p className="text-sm text-slate-500">
+                  Líder: {getNomeUsuario(c.lider_id)}
                 </p>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => router.push('/dashboard/secretaria')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Voltar
-                </button>
+              <select
+                value={c.supervisor_id || ''}
+                onChange={(e) => atualizarSupervisor(c.id, e.target.value)}
+                disabled={salvandoCelulaId === c.id}
+                className="w-full rounded-xl border p-3"
+              >
+                <option value="">Sem supervisor</option>
+                {supervisores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.nome}
+                  </option>
+                ))}
+              </select>
 
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Dashboard
-                </button>
-              </div>
             </div>
-
-            <div className="space-y-6 p-8">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm text-slate-500">Total de células</p>
-                  <h2 className="mt-2 text-3xl font-bold text-slate-800">
-                    {totalCelulas}
-                  </h2>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm text-slate-500">Supervisores ativos</p>
-                  <h2 className="mt-2 text-3xl font-bold text-slate-800">
-                    {totalSupervisores}
-                  </h2>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                  <p className="text-sm text-slate-500">Células sem supervisor</p>
-                  <h2 className="mt-2 text-3xl font-bold text-slate-800">
-                    {celulasSemSupervisor}
-                  </h2>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 p-6">
-                <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                  <div>
-                    <h2 className="text-2xl font-bold text-slate-800">
-                      Células
-                    </h2>
-                    <p className="text-sm text-slate-500">
-                      Pesquise por célula, líder ou supervisor
-                    </p>
-                  </div>
-
-                  <input
-                    placeholder="Buscar..."
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none md:max-w-sm focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
-                  />
-                </div>
-
-                <div className="grid gap-4">
-                  {celulasFiltradas.length === 0 ? (
-                    <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
-                      Nenhuma célula encontrada.
-                    </div>
-                  ) : (
-                    celulasFiltradas.map((celula) => (
-                      <div
-                        key={celula.id}
-                        className="rounded-2xl border border-slate-200 p-5"
-                      >
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                          <div>
-                            <p className="text-sm text-slate-500">Célula</p>
-                            <p className="font-semibold text-slate-800">
-                              {celula.nome}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-sm text-slate-500">Líder</p>
-                            <p className="font-semibold text-slate-800">
-                              {getNomeUsuario(celula.lider_id)}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-sm text-slate-500">Tipo</p>
-                            <p className="font-semibold text-slate-800">
-                              {celula.tipo_celula || '-'}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-sm text-slate-500">Dia</p>
-                            <p className="font-semibold text-slate-800">
-                              {celula.dia_semana || '-'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-                          <div>
-                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                              Supervisor responsável
-                            </label>
-
-                            <select
-                              value={celula.supervisor_id || ''}
-                              onChange={(e) =>
-                                atualizarSupervisorDaCelula(celula.id, e.target.value)
-                              }
-                              disabled={salvandoCelulaId === celula.id}
-                              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:opacity-60"
-                            >
-                              <option value="">Sem supervisor</option>
-                              {supervisores.map((supervisor) => (
-                                <option key={supervisor.id} value={supervisor.id}>
-                                  {supervisor.nome}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                            Atualizado:{' '}
-                            <span className="font-semibold text-slate-700">
-                              {celula.atualizado_em
-                                ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
-                                    timeZone: 'America/Sao_Paulo',
-                                    dateStyle: 'short',
-                                    timeStyle: 'short',
-                                  })
-                                : '-'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="mt-3 text-sm text-slate-500">
-                          Supervisor atual:{' '}
-                          <span className="font-semibold text-slate-700">
-                            {getNomeUsuario(celula.supervisor_id)}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
+          ))}
         </div>
+
       </div>
     </div>
   )

@@ -114,16 +114,16 @@ export default function Cadastro() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-3 py-6 sm:px-4 sm:py-10">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-green-200/30 blur-3xl" />
-        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-100/40 blur-3xl" />
+        <div className="absolute -top-20 -left-16 h-56 w-56 rounded-full bg-green-200/30 blur-3xl sm:h-72 sm:w-72" />
+        <div className="absolute top-1/3 -right-20 h-64 w-64 rounded-full bg-blue-200/30 blur-3xl sm:h-80 sm:w-80" />
+        <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-emerald-100/40 blur-3xl sm:h-72 sm:w-72" />
       </div>
 
       {toast.visible && (
         <div
-          className={`fixed right-5 top-5 z-50 min-w-[280px] max-w-sm rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-md transition-all duration-300 ${
+          className={`fixed left-3 right-3 top-4 z-50 rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 sm:left-auto sm:right-5 sm:top-5 sm:min-w-[280px] sm:max-w-sm sm:px-5 sm:py-4 ${
             toast.type === 'success'
               ? 'border-green-200 bg-green-600 text-white'
               : 'border-red-200 bg-red-500 text-white'
@@ -140,23 +140,23 @@ export default function Cadastro() {
         </div>
       )}
 
-      <div className="relative z-10 flex min-h-[calc(100vh-5rem)] items-center justify-center">
+      <div className="relative z-10 flex min-h-[calc(100vh-3rem)] items-center justify-center sm:min-h-[calc(100vh-5rem)]">
         <div
           className={`w-full max-w-lg transform transition-all duration-700 ${
-            mounted
-              ? 'translate-y-0 opacity-100'
-              : 'translate-y-6 opacity-0'
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
           }`}
         >
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-500 px-8 py-8 text-white">
-              <h1 className="text-4xl font-bold tracking-tight">Conecta Sião</h1>
+            <div className="bg-gradient-to-r from-green-600 to-emerald-500 px-5 py-6 text-white sm:px-8 sm:py-8">
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
+                Conecta Sião
+              </h1>
               <p className="mt-2 text-sm text-green-50">
                 Crie sua conta para acessar o sistema
               </p>
             </div>
 
-            <div className="p-8">
+            <div className="p-4 sm:p-6 md:p-8">
               <div className="grid gap-4">
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -238,7 +238,7 @@ export default function Cadastro() {
                 <button
                   onClick={handleCadastro}
                   disabled={loading}
-                  className="mt-2 rounded-2xl bg-gradient-to-r from-green-600 to-emerald-500 py-3.5 text-base font-semibold text-white shadow-lg shadow-green-200 transition duration-200 hover:-translate-y-0.5 hover:from-green-700 hover:to-emerald-600 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+                  className="mt-2 rounded-2xl bg-gradient-to-r from-green-600 to-emerald-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-green-200 transition duration-200 hover:-translate-y-0.5 hover:from-green-700 hover:to-emerald-600 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:text-base"
                 >
                   {loading ? 'Cadastrando...' : 'Cadastrar'}
                 </button>

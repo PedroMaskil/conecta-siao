@@ -38,7 +38,11 @@ export default function AdministracaoPage() {
         return
       }
 
-      const { data } = await supabase.from('usuarios').select('*').order('nome', { ascending: true })
+      const { data } = await supabase
+        .from('usuarios')
+        .select('*')
+        .order('nome', { ascending: true })
+
       setUsuarios(data || [])
       setLoading(false)
     }
@@ -76,11 +80,13 @@ export default function AdministracaoPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-3 py-6 sm:px-4 sm:py-10">
+      
+      {/* BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-orange-200/30 blur-3xl" />
-        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-amber-200/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-orange-100/40 blur-3xl" />
+        <div className="absolute -top-20 -left-16 h-56 w-56 rounded-full bg-orange-200/30 blur-3xl sm:h-72 sm:w-72" />
+        <div className="absolute top-1/3 -right-20 h-64 w-64 rounded-full bg-amber-200/30 blur-3xl sm:h-80 sm:w-80" />
+        <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-orange-100/40 blur-3xl sm:h-72 sm:w-72" />
       </div>
 
       <div className="relative z-10 flex justify-center">
@@ -90,44 +96,51 @@ export default function AdministracaoPage() {
           }`}
         >
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-500 px-8 py-6 text-white">
+
+            {/* HEADER */}
+            <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-4 py-4 text-white sm:px-8 sm:py-6">
               <div>
-                <h1 className="text-3xl font-bold">Administração</h1>
-                <p className="text-sm text-orange-50">
-                  Gestão de usuários e permissões
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
+                  Administração
+                </h1>
+                <p className="text-xs sm:text-sm text-orange-50">
+                  Gestão de usuários
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => router.push('/dashboard/secretaria/supervisao')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+                  className="rounded-xl bg-white/20 px-3 py-2 text-sm hover:bg-white/30"
                 >
-                  Atribuir supervisão
+                  Supervisão
                 </button>
 
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+                  className="rounded-xl bg-white/20 px-3 py-2 text-sm hover:bg-white/30"
                 >
                   Voltar
                 </button>
               </div>
             </div>
 
-            <div className="space-y-6 p-8">
-              <div className="flex flex-col gap-4 md:flex-row">
+            {/* CONTENT */}
+            <div className="space-y-5 p-4 sm:p-6 md:p-8">
+
+              {/* FILTROS */}
+              <div className="flex flex-col gap-3 sm:flex-row">
                 <input
                   placeholder="Buscar usuário..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
                 />
 
                 <select
                   value={filtro}
                   onChange={(e) => setFiltro(e.target.value)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                  className="w-full sm:w-auto rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
                 >
                   <option value="todos">Todos</option>
                   <option value="lider">Líderes</option>
@@ -135,23 +148,30 @@ export default function AdministracaoPage() {
                 </select>
               </div>
 
+              {/* LISTA */}
               <div className="space-y-3">
                 {usuariosFiltrados.map((user) => (
                   <div
                     key={user.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4 transition hover:shadow-lg md:flex-row md:items-center md:justify-between"
+                    className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
                   >
+                    {/* INFO */}
                     <div>
-                      <p className="font-semibold text-slate-800">{user.nome}</p>
-                      <p className="text-sm text-slate-500">{user.email}</p>
+                      <p className="font-semibold text-slate-800">
+                        {user.nome}
+                      </p>
+                      <p className="text-xs sm:text-sm text-slate-500 break-all">
+                        {user.email}
+                      </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    {/* BOTÕES */}
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() =>
                           togglePermissao(user.id, 'is_lider', !user.is_lider)
                         }
-                        className={`rounded-xl px-3 py-2 text-sm text-white ${
+                        className={`rounded-xl py-2 text-xs sm:text-sm font-semibold text-white ${
                           user.is_lider ? 'bg-red-500' : 'bg-orange-500'
                         }`}
                       >
@@ -166,18 +186,19 @@ export default function AdministracaoPage() {
                             !user.is_supervisor
                           )
                         }
-                        className={`rounded-xl px-3 py-2 text-sm text-white ${
+                        className={`rounded-xl py-2 text-xs sm:text-sm font-semibold text-white ${
                           user.is_supervisor ? 'bg-red-500' : 'bg-amber-500'
                         }`}
                       >
                         {user.is_supervisor
-                          ? 'Remover Supervisor'
-                          : 'Tornar Supervisor'}
+                          ? 'Remover'
+                          : 'Supervisor'}
                       </button>
                     </div>
                   </div>
                 ))}
               </div>
+
             </div>
           </div>
         </div>
