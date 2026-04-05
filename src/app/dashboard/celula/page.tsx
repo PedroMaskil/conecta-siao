@@ -7,7 +7,6 @@ import { createClient } from '@/utils/supabase/client'
 type PerfilUsuario = {
   id: string
   nome: string
-  tipo?: string | null
   is_lider?: boolean | null
 }
 
@@ -52,16 +51,13 @@ export default function DashboardCelulaPage() {
         return
       }
 
-      const { data: perfilData } = await supabase
+      const { data: perfilData, error: perfilError } = await supabase
         .from('usuarios')
-        .select('id, nome, tipo, is_lider')
+        .select('id, nome, is_lider')
         .eq('id', user.id)
         .single()
 
-      const podeSerLider =
-        perfilData?.is_lider === true || perfilData?.tipo === 'lider'
-
-      if (!perfilData || !podeSerLider) {
+      if (perfilError || !perfilData || perfilData.is_lider !== true) {
         router.push('/dashboard')
         return
       }
@@ -122,7 +118,6 @@ export default function DashboardCelulaPage() {
       }
 
       setCelula(data)
-      alert('Célula criada!')
       setSalvando(false)
       return
     }
@@ -147,7 +142,6 @@ export default function DashboardCelulaPage() {
     }
 
     setCelula(data)
-    alert('Célula atualizada!')
     setSalvando(false)
   }
 
@@ -169,9 +163,7 @@ export default function DashboardCelulaPage() {
       <div className="mx-auto max-w-5xl">
         <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800">
-              Minha célula
-            </h1>
+            <h1 className="text-3xl font-bold text-slate-800">Minha célula</h1>
 
             <p className="mt-1 text-sm text-slate-500">
               Bem-vindo, <span className="font-semibold">{perfil?.nome}</span>
@@ -232,7 +224,7 @@ export default function DashboardCelulaPage() {
               <input
                 value={nome}
                 onChange={(e) => setNome(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-4 py-3"
+                className="mt-1 w-full rounded-xl border px-4 py-3"
               />
             </div>
 
@@ -243,7 +235,7 @@ export default function DashboardCelulaPage() {
               <input
                 value={endereco}
                 onChange={(e) => setEndereco(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-4 py-3"
+                className="mt-1 w-full rounded-xl border px-4 py-3"
               />
             </div>
 
@@ -255,7 +247,7 @@ export default function DashboardCelulaPage() {
                 type="number"
                 value={quantidadePessoas}
                 onChange={(e) => setQuantidadePessoas(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-4 py-3"
+                className="mt-1 w-full rounded-xl border px-4 py-3"
               />
             </div>
 
@@ -266,15 +258,13 @@ export default function DashboardCelulaPage() {
               <select
                 value={tipoCelula}
                 onChange={(e) => setTipoCelula(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-4 py-3"
+                className="mt-1 w-full rounded-xl border px-4 py-3"
               >
                 <option value="">Selecione</option>
                 <option>Kids</option>
-                <option>Mista</option>
-                <option>Adolescentes</option>
-                <option>Rapazes</option>
-                <option>Moças</option>
-                <option>Par</option>
+                <option>Casais</option>
+                <option>Solteiros</option>
+                <option>Solteiras</option>
               </select>
             </div>
 
@@ -285,7 +275,7 @@ export default function DashboardCelulaPage() {
               <select
                 value={diaSemana}
                 onChange={(e) => setDiaSemana(e.target.value)}
-                className="w-full mt-1 rounded-xl border px-4 py-3"
+                className="mt-1 w-full rounded-xl border px-4 py-3"
               >
                 <option value="">Selecione</option>
                 <option>Segunda</option>
@@ -303,7 +293,7 @@ export default function DashboardCelulaPage() {
             <button
               onClick={handleSalvarCelula}
               disabled={salvando}
-              className="w-full rounded-xl bg-blue-600 py-3 text-white font-semibold hover:bg-blue-700 disabled:opacity-60"
+              className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white hover:bg-blue-700 disabled:opacity-60"
             >
               {salvando
                 ? 'Salvando...'

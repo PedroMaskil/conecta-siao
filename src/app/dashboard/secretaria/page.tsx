@@ -24,7 +24,7 @@ export default function AdministracaoPage() {
     }
 
     load()
-  }, [])
+  }, [supabase])
 
   const usuariosFiltrados = useMemo(() => {
     return usuarios
@@ -47,59 +47,58 @@ export default function AdministracaoPage() {
     )
   }
 
-  if (loading) return <div className="p-10">Carregando...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        Carregando...
+      </div>
+    )
+  }
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
-      
-      {/* BACKGROUND */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-green-200/30 blur-3xl" />
-        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-100/40 blur-3xl" />
+        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-orange-200/30 blur-3xl" />
+        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-amber-200/30 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-orange-100/40 blur-3xl" />
       </div>
 
       <div className="relative z-10 flex justify-center">
         <div
           className={`w-full max-w-6xl transition-all duration-700 ${
-            mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
           }`}
         >
-          <div className="rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl overflow-hidden">
-
-            {/* HEADER */}
-            <div className="bg-gradient-to-r from-green-600 to-emerald-500 px-8 py-6 text-white flex justify-between items-center">
+          <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-500 px-8 py-6 text-white">
               <div>
                 <h1 className="text-3xl font-bold">Administração</h1>
-                <p className="text-sm text-green-50">
+                <p className="text-sm text-orange-50">
                   Gestão de usuários e permissões
                 </p>
               </div>
 
               <button
                 onClick={() => router.push('/dashboard')}
-                className="bg-white/20 px-4 py-2 rounded-xl hover:bg-white/30 transition"
+                className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
               >
                 Voltar
               </button>
             </div>
 
-            {/* CONTENT */}
-            <div className="p-8 space-y-6">
-
-              {/* FILTRO */}
-              <div className="flex flex-col md:flex-row gap-4">
+            <div className="space-y-6 p-8">
+              <div className="flex flex-col gap-4 md:flex-row">
                 <input
                   placeholder="Buscar usuário..."
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-4 focus:ring-green-100 focus:border-green-500"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
                 />
 
                 <select
                   value={filtro}
                   onChange={(e) => setFiltro(e.target.value)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3"
+                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
                 >
                   <option value="todos">Todos</option>
                   <option value="lider">Líderes</option>
@@ -107,31 +106,24 @@ export default function AdministracaoPage() {
                 </select>
               </div>
 
-              {/* LISTA */}
               <div className="space-y-3">
                 {usuariosFiltrados.map((user) => (
                   <div
                     key={user.id}
-                    className="rounded-2xl border border-slate-200 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 hover:shadow-lg transition"
+                    className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4 transition hover:shadow-lg md:flex-row md:items-center md:justify-between"
                   >
                     <div>
                       <p className="font-semibold text-slate-800">{user.nome}</p>
                       <p className="text-sm text-slate-500">{user.email}</p>
                     </div>
 
-                    <div className="flex gap-2 flex-wrap">
+                    <div className="flex flex-wrap gap-2">
                       <button
                         onClick={() =>
-                          togglePermissao(
-                            user.id,
-                            'is_lider',
-                            !user.is_lider
-                          )
+                          togglePermissao(user.id, 'is_lider', !user.is_lider)
                         }
-                        className={`px-3 py-2 rounded-xl text-white text-sm ${
-                          user.is_lider
-                            ? 'bg-red-500'
-                            : 'bg-green-600'
+                        className={`rounded-xl px-3 py-2 text-sm text-white ${
+                          user.is_lider ? 'bg-red-500' : 'bg-orange-500'
                         }`}
                       >
                         {user.is_lider ? 'Remover Líder' : 'Tornar Líder'}
@@ -145,10 +137,8 @@ export default function AdministracaoPage() {
                             !user.is_supervisor
                           )
                         }
-                        className={`px-3 py-2 rounded-xl text-white text-sm ${
-                          user.is_supervisor
-                            ? 'bg-red-500'
-                            : 'bg-blue-600'
+                        className={`rounded-xl px-3 py-2 text-sm text-white ${
+                          user.is_supervisor ? 'bg-red-500' : 'bg-amber-500'
                         }`}
                       >
                         {user.is_supervisor
@@ -159,7 +149,6 @@ export default function AdministracaoPage() {
                   </div>
                 ))}
               </div>
-
             </div>
           </div>
         </div>

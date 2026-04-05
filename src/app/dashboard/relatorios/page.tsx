@@ -7,7 +7,6 @@ import { createClient } from '@/utils/supabase/client'
 type PerfilUsuario = {
   id: string
   nome: string
-  tipo?: string | null
   is_lider?: boolean | null
 }
 
@@ -43,16 +42,13 @@ export default function DashboardRelatoriosPage() {
         return
       }
 
-      const { data: perfilData } = await supabase
+      const { data: perfilData, error: perfilError } = await supabase
         .from('usuarios')
-        .select('id, nome, tipo, is_lider')
+        .select('id, nome, is_lider')
         .eq('id', user.id)
         .single()
 
-      const podeSerLider =
-        perfilData?.is_lider === true || perfilData?.tipo === 'lider'
-
-      if (!perfilData || !podeSerLider) {
+      if (perfilError || !perfilData || perfilData.is_lider !== true) {
         router.push('/dashboard')
         return
       }
@@ -66,7 +62,6 @@ export default function DashboardRelatoriosPage() {
         .maybeSingle()
 
       if (celulaError || !celulaData) {
-        alert('Você precisa criar sua célula antes de enviar relatórios.')
         router.push('/dashboard/celula')
         return
       }
@@ -79,10 +74,7 @@ export default function DashboardRelatoriosPage() {
   }, [router, supabase])
 
   async function handleSalvarRelatorio() {
-    if (!perfil || !celula) {
-      alert('Dados da célula não carregados.')
-      return
-    }
+    if (!perfil || !celula) return
 
     if (!dataReferencia || totalPresentes === '' || visitantes === '') {
       alert('Preencha os campos obrigatórios.')
@@ -110,8 +102,6 @@ export default function DashboardRelatoriosPage() {
       return
     }
 
-    alert('Relatório enviado com sucesso!')
-
     setDataReferencia('')
     setTotalPresentes('')
     setVisitantes('')
@@ -127,7 +117,7 @@ export default function DashboardRelatoriosPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <p className="text-slate-700 text-lg">Carregando relatórios...</p>
+        Carregando relatórios...
       </div>
     )
   }
