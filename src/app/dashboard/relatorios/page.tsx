@@ -28,9 +28,12 @@ export default function DashboardRelatoriosPage() {
   const [celula, setCelula] = useState<Celula | null>(null)
 
   const [dataReferencia, setDataReferencia] = useState('')
+  const [dataPrevistaCelula, setDataPrevistaCelula] = useState('')
+  const [realizouCelula, setRealizouCelula] = useState(true)
   const [totalPresentes, setTotalPresentes] = useState('')
   const [visitantes, setVisitantes] = useState('')
   const [observacoes, setObservacoes] = useState('')
+  const [motivoNaoRealizacao, setMotivoNaoRealizacao] = useState('')
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 80)
@@ -79,25 +82,40 @@ export default function DashboardRelatoriosPage() {
   async function handleSalvarRelatorio() {
     if (!perfil || !celula) return
 
-    if (!dataReferencia || totalPresentes === '' || visitantes === '') {
-      alert('Preencha os campos obrigatórios.')
+    if (!dataReferencia || !dataPrevistaCelula) {
+      alert('Preencha a data de referência e a data prevista da célula.')
       return
+    }
+
+    if (realizouCelula) {
+      if (totalPresentes === '' || visitantes === '') {
+        alert('Preencha presentes e visitantes.')
+        return
+      }
+    } else {
+      if (!motivoNaoRealizacao) {
+        alert('Informe o motivo da não realização da célula.')
+        return
+      }
     }
 
     setSalvando(true)
 
+    const payload = {
+      celula_id: celula.id,
+      lider_id: perfil.id,
+      data_referencia: dataReferencia,
+      data_prevista_celula: dataPrevistaCelula,
+      realizou_celula: realizouCelula,
+      total_presentes: realizouCelula ? Number(totalPresentes) : 0,
+      visitantes: realizouCelula ? Number(visitantes) : 0,
+      observacoes: realizouCelula ? observacoes : null,
+      motivo_nao_realizacao: realizouCelula ? null : motivoNaoRealizacao,
+    }
+
     const { error } = await supabase
       .from('relatorios')
-      .insert([
-        {
-          celula_id: celula.id,
-          lider_id: perfil.id,
-          data_referencia: dataReferencia,
-          total_presentes: Number(totalPresentes),
-          visitantes: Number(visitantes),
-          observacoes,
-        },
-      ])
+      .insert([payload])
 
     if (error) {
       alert('Erro ao salvar relatório: ' + error.message)
@@ -106,9 +124,12 @@ export default function DashboardRelatoriosPage() {
     }
 
     setDataReferencia('')
+    setDataPrevistaCelula('')
+    setRealizouCelula(true)
     setTotalPresentes('')
     setVisitantes('')
     setObservacoes('')
+    setMotivoNaoRealizacao('')
     setSalvando(false)
   }
 
@@ -181,7 +202,7 @@ export default function DashboardRelatoriosPage() {
                 </h2>
 
                 <p className="mb-6 text-sm text-slate-500">
-                  Preencha os dados da reunião da semana.
+                  Informe se a célula foi realizada e preencha os dados conforme a situação.
                 </p>
 
                 <div className="grid gap-4 md:grid-cols-2">
@@ -210,44 +231,105 @@ export default function DashboardRelatoriosPage() {
 
                   <div>
                     <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Total de presentes
+                      Data prevista da célula
                     </label>
                     <input
-                      type="number"
-                      min="0"
-                      value={totalPresentes}
-                      onChange={(e) => setTotalPresentes(e.target.value)}
-                      placeholder="Ex: 12"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Visitantes
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={visitantes}
-                      onChange={(e) => setVisitantes(e.target.value)}
-                      placeholder="Ex: 2"
+                      type="date"
+                      value={dataPrevistaCelula}
+                      onChange={(e) => setDataPrevistaCelula(e.target.value)}
                       className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
 
                   <div className="md:col-span-2">
-                    <label className="mb-1 block text-sm font-medium text-slate-700">
-                      Observações
+                    <label className="mb-3 block text-sm font-medium text-slate-700">
+                      Realizou a célula esta semana?
                     </label>
-                    <textarea
-                      value={observacoes}
-                      onChange={(e) => setObservacoes(e.target.value)}
-                      placeholder="Escreva observações importantes..."
-                      rows={5}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-                    />
+
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setRealizouCelula(true)}
+                        className={`rounded-2xl px-5 py-3 font-semibold transition ${
+                          realizouCelula
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        Sim
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setRealizouCelula(false)}
+                        className={`rounded-2xl px-5 py-3 font-semibold transition ${
+                          !realizouCelula
+                            ? 'bg-red-500 text-white'
+                            : 'bg-slate-100 text-slate-700'
+                        }`}
+                      >
+                        Não
+                      </button>
+                    </div>
                   </div>
+
+                  {realizouCelula ? (
+                    <>
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">
+                          Total de presentes
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={totalPresentes}
+                          onChange={(e) => setTotalPresentes(e.target.value)}
+                          placeholder="Ex: 12"
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">
+                          Visitantes
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={visitantes}
+                          onChange={(e) => setVisitantes(e.target.value)}
+                          placeholder="Ex: 2"
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="mb-1 block text-sm font-medium text-slate-700">
+                          Observações
+                        </label>
+                        <textarea
+                          value={observacoes}
+                          onChange={(e) => setObservacoes(e.target.value)}
+                          placeholder="Escreva observações importantes..."
+                          rows={5}
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="md:col-span-2">
+                      <label className="mb-1 block text-sm font-medium text-slate-700">
+                        Motivo da não realização
+                      </label>
+                      <textarea
+                        value={motivoNaoRealizacao}
+                        onChange={(e) => setMotivoNaoRealizacao(e.target.value)}
+                        placeholder="Explique por que a célula não foi realizada nesta semana..."
+                        rows={5}
+                        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-6">
