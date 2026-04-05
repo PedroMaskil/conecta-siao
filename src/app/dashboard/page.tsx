@@ -59,8 +59,8 @@ export default function DashboardPage() {
 
   const isLider = perfil?.is_lider === true
   const isSupervisor = perfil?.is_supervisor === true
-  const isSecretaria = perfil?.is_secretaria === true
-  const isSuperAdmin = perfil?.is_super_admin === true
+  const isAdministracao = perfil?.is_secretaria === true
+  const isGestaoUsuarios = perfil?.is_super_admin === true
 
   if (loading) {
     return (
@@ -110,15 +110,15 @@ export default function DashboardPage() {
               </span>
             )}
 
-            {isSecretaria && (
+            {isAdministracao && (
               <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
-                Secretaria
+                Administração
               </span>
             )}
 
-            {isSuperAdmin && (
+            {isGestaoUsuarios && (
               <span className="rounded-full bg-purple-100 px-4 py-2 text-sm font-semibold text-purple-700">
-                Super Admin
+                Gestão de Usuários
               </span>
             )}
           </div>
@@ -185,13 +185,13 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {isSecretaria && (
+          {isAdministracao && (
             <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
               <h3 className="text-xl font-bold text-slate-800">
-                Secretaria
+                Administração
               </h3>
               <p className="mt-2 text-sm text-slate-500">
-                Visualize relatórios gerais e dados consolidados.
+                Visualize usuários, células, relatórios e vínculos de supervisão.
               </p>
 
               <div className="mt-auto pt-6">
@@ -199,19 +199,19 @@ export default function DashboardPage() {
                   onClick={() => router.push('/dashboard/secretaria')}
                   className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-white transition hover:bg-amber-600"
                 >
-                  Abrir secretaria
+                  Abrir administração
                 </button>
               </div>
             </div>
           )}
 
-          {isSuperAdmin && (
+          {isGestaoUsuarios && (
             <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
               <h3 className="text-xl font-bold text-slate-800">
-                Administração
+                Gestão de Usuários
               </h3>
               <p className="mt-2 text-sm text-slate-500">
-                Gerencie usuários, permissões e vínculos.
+                Gerencie permissões sensíveis e acessos avançados.
               </p>
 
               <div className="mt-auto pt-6">
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                   onClick={() => router.push('/dashboard/admin')}
                   className="w-full rounded-xl bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-700"
                 >
-                  Abrir administração
+                  Abrir gestão
                 </button>
               </div>
             </div>
