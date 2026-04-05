@@ -191,13 +191,6 @@ export default function DashboardCelulaPage() {
                 >
                   Voltar
                 </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Sair
-                </button>
               </div>
             </div>
 
