@@ -169,7 +169,14 @@ export default function DashboardRelatoriosPage() {
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => router.push('/dashboard/relatorios/historico')}
+                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+                >
+                  Ver relatórios enviados
+                </button>
+
                 <button
                   onClick={() => router.push('/dashboard')}
                   className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
