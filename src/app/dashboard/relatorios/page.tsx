@@ -128,9 +128,9 @@ export default function DashboardRelatoriosPage() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-green-200/30 blur-3xl" />
-        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-100/40 blur-3xl" />
+        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-blue-200/30 blur-3xl" />
+        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-sky-200/30 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-blue-100/40 blur-3xl" />
       </div>
 
       <div className="relative z-10 flex justify-center">
@@ -140,10 +140,10 @@ export default function DashboardRelatoriosPage() {
           }`}
         >
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between bg-gradient-to-r from-green-600 to-emerald-500 px-8 py-6 text-white">
+            <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-sky-500 px-8 py-6 text-white">
               <div>
                 <h1 className="text-3xl font-bold">Enviar relatório</h1>
-                <p className="text-sm text-green-50">
+                <p className="text-sm text-blue-50">
                   Preencha o relatório semanal da sua célula
                 </p>
               </div>
@@ -204,7 +204,7 @@ export default function DashboardRelatoriosPage() {
                       type="date"
                       value={dataReferencia}
                       onChange={(e) => setDataReferencia(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
 
@@ -218,7 +218,7 @@ export default function DashboardRelatoriosPage() {
                       value={totalPresentes}
                       onChange={(e) => setTotalPresentes(e.target.value)}
                       placeholder="Ex: 12"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
 
@@ -232,7 +232,7 @@ export default function DashboardRelatoriosPage() {
                       value={visitantes}
                       onChange={(e) => setVisitantes(e.target.value)}
                       placeholder="Ex: 2"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
 
@@ -245,7 +245,7 @@ export default function DashboardRelatoriosPage() {
                       onChange={(e) => setObservacoes(e.target.value)}
                       placeholder="Escreva observações importantes..."
                       rows={5}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                     />
                   </div>
                 </div>
@@ -254,7 +254,7 @@ export default function DashboardRelatoriosPage() {
                   <button
                     onClick={handleSalvarRelatorio}
                     disabled={salvando}
-                    className="w-full rounded-2xl bg-gradient-to-r from-green-600 to-emerald-500 py-3.5 font-semibold text-white transition hover:from-green-700 hover:to-emerald-600 disabled:opacity-60"
+                    className="w-full rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 py-3.5 font-semibold text-white transition hover:from-blue-700 hover:to-sky-600 disabled:opacity-60"
                   >
                     {salvando ? 'Enviando...' : 'Enviar relatório'}
                   </button>
