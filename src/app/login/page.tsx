@@ -4,16 +4,6 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
-type PerfilUsuario = {
-  id: string
-  nome: string
-  idade: number
-  telefone: string
-  email: string
-  endereco: string
-  tipo: string
-}
-
 export default function Login() {
   const supabase = createClient()
   const router = useRouter()
@@ -30,62 +20,19 @@ export default function Login() {
 
     setLoading(true)
 
-    const { error: loginError } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (loginError) {
-      alert('Erro no login: ' + loginError.message)
+    if (error) {
+      alert('Erro no login: ' + error.message)
       setLoading(false)
       return
     }
 
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser()
-
-    if (userError || !user) {
-      alert('Não foi possível identificar o usuário logado.')
-      setLoading(false)
-      return
-    }
-
-    const { data: perfil, error: perfilError } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('id', user.id)
-      .single<PerfilUsuario>()
-
-    if (perfilError || !perfil) {
-      alert('Não foi possível carregar o perfil do usuário.')
-      setLoading(false)
-      return
-    }
-
-    if (perfil.tipo === 'lider') {
-      router.push('/lider')
-      return
-    }
-
-    if (perfil.tipo === 'supervisor') {
-      router.push('/supervisor')
-      return
-    }
-
-    if (perfil.tipo === 'secretaria') {
-      router.push('/secretaria')
-      return
-    }
-
-    if (perfil.tipo === 'superAdmin') {
-      router.push('/super-admin')
-      return
-    }
-
-    alert('Tipo de usuário inválido.')
     setLoading(false)
+    router.push('/dashboard')
   }
 
   return (
