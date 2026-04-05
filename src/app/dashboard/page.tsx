@@ -8,7 +8,6 @@ type PerfilUsuario = {
   id: string
   nome: string
   email: string
-  tipo?: string | null
   is_lider?: boolean | null
   is_supervisor?: boolean | null
   is_secretaria?: boolean | null
@@ -36,7 +35,7 @@ export default function DashboardPage() {
 
       const { data, error } = await supabase
         .from('usuarios')
-        .select('*')
+        .select('id, nome, email, is_lider, is_supervisor, is_secretaria, is_super_admin')
         .eq('id', user.id)
         .single()
 
@@ -58,26 +57,10 @@ export default function DashboardPage() {
     router.push('/login')
   }
 
-  function getPermissoes() {
-    const isSuperAdmin =
-      perfil?.is_super_admin === true || perfil?.tipo === 'superAdmin'
-
-    const isSecretaria =
-      perfil?.is_secretaria === true || perfil?.tipo === 'secretaria'
-
-    const isSupervisor =
-      perfil?.is_supervisor === true || perfil?.tipo === 'supervisor'
-
-    const isLider =
-      perfil?.is_lider === true || perfil?.tipo === 'lider'
-
-    return {
-      isSuperAdmin,
-      isSecretaria,
-      isSupervisor,
-      isLider,
-    }
-  }
+  const isLider = perfil?.is_lider === true
+  const isSupervisor = perfil?.is_supervisor === true
+  const isSecretaria = perfil?.is_secretaria === true
+  const isSuperAdmin = perfil?.is_super_admin === true
 
   if (loading) {
     return (
@@ -86,8 +69,6 @@ export default function DashboardPage() {
       </div>
     )
   }
-
-  const { isSuperAdmin, isSecretaria, isSupervisor, isLider } = getPermissoes()
 
   return (
     <div className="min-h-screen bg-slate-100 px-4 py-10">
@@ -198,7 +179,7 @@ export default function DashboardPage() {
                   onClick={() => router.push('/dashboard/supervisao')}
                   className="w-full rounded-xl bg-slate-700 py-3 font-semibold text-white transition hover:bg-slate-800"
                 >
-                  Área do Supervisor
+                  Abrir supervisão
                 </button>
               </div>
             </div>
