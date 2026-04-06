@@ -1,230 +1,247 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
 type PerfilUsuario = {
   id: string
   nome: string
-  is_supervisor?: boolean | null
-}
-
-type Usuario = {
-  id: string
-  nome: string
   email: string
+  is_lider?: boolean | null
+  is_supervisor?: boolean | null
+  is_secretaria?: boolean | null
+  is_super_admin?: boolean | null
 }
 
-type Celula = {
-  id: string
-  nome: string
-  lider_id: string | null
-  supervisor_id: string | null
-  endereco: string | null
-  quantidade_pessoas: number | null
-  tipo_celula: string | null
-  dia_semana: string | null
-  atualizado_em: string | null
-}
-
-type Relatorio = {
-  id: string
-  celula_id: string
-  lider_id: string
-  data_referencia: string
-  dia_semana_celula: string | null
-  realizou_celula: boolean | null
-  total_presentes: number | null
-  visitantes: number | null
-  observacoes: string | null
-  motivo_nao_realizacao: string | null
-  criado_em: string
-}
-
-export default function SupervisaoDashboardPage() {
+export default function DashboardPage() {
   const supabase = createClient()
   const router = useRouter()
 
-  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
-
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
-  const [usuarios, setUsuarios] = useState<Usuario[]>([])
-  const [celulas, setCelulas] = useState<Celula[]>([])
-  const [relatorios, setRelatorios] = useState<Relatorio[]>([])
-
-  const [busca, setBusca] = useState('')
-  const [filtroRelatorio, setFiltroRelatorio] = useState('todos')
 
   useEffect(() => {
-    setTimeout(() => setMounted(true), 80)
-
-    async function carregarPagina() {
+    async function carregarDashboard() {
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (authError || !user) {
         router.push('/login')
         return
       }
 
-      const { data: perfilData } = await supabase
+      const { data, error } = await supabase
         .from('usuarios')
-        .select('id, nome, is_supervisor')
+        .select('id, nome, email, is_lider, is_supervisor, is_secretaria, is_super_admin')
         .eq('id', user.id)
         .single()
 
-      if (!perfilData || perfilData.is_supervisor !== true) {
-        router.push('/dashboard')
+      if (error || !data) {
+        alert('Não foi possível carregar seu perfil.')
+        router.push('/login')
         return
       }
 
-      setPerfil(perfilData)
-
-      const [{ data: usuariosData }, { data: celulasData }] = await Promise.all([
-        supabase.from('usuarios').select('id, nome, email'),
-        supabase
-          .from('celulas')
-          .select('*')
-          .eq('supervisor_id', user.id),
-      ])
-
-      const listaCelulas = celulasData || []
-      setUsuarios(usuariosData || [])
-      setCelulas(listaCelulas)
-
-      if (listaCelulas.length === 0) {
-        setLoading(false)
-        return
-      }
-
-      const ids = listaCelulas.map((c) => c.id)
-
-      const { data: relatoriosData } = await supabase
-        .from('relatorios')
-        .select('*')
-        .in('celula_id', ids)
-        .order('criado_em', { ascending: false })
-
-      setRelatorios(relatoriosData || [])
+      setPerfil(data)
       setLoading(false)
     }
 
-    carregarPagina()
+    carregarDashboard()
   }, [router, supabase])
-
-  function getNomeUsuario(id: string | null) {
-    if (!id) return '-'
-    return usuarios.find((u) => u.id === id)?.nome || '-'
-  }
-
-  function getNomeCelula(id: string) {
-    return celulas.find((c) => c.id === id)?.nome || '-'
-  }
-
-  const celulasFiltradas = useMemo(() => {
-    const termo = busca.toLowerCase()
-    return celulas.filter((c) =>
-      c.nome.toLowerCase().includes(termo)
-    )
-  }, [busca, celulas])
-
-  const relatoriosFiltrados = useMemo(() => {
-    let lista = relatorios
-
-    if (filtroRelatorio === 'realizadas') {
-      lista = lista.filter((r) => r.realizou_celula)
-    }
-
-    if (filtroRelatorio === 'nao-realizadas') {
-      lista = lista.filter((r) => !r.realizou_celula)
-    }
-
-    return lista
-  }, [relatorios, filtroRelatorio])
 
   async function handleLogout() {
     await supabase.auth.signOut()
     router.push('/login')
   }
 
+  const isLider = perfil?.is_lider === true
+  const isSupervisor = perfil?.is_supervisor === true
+  const isAdministracao = perfil?.is_secretaria === true
+  const isGestaoUsuarios = perfil?.is_super_admin === true
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        Carregando...
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <p className="text-slate-700 text-lg">Carregando dashboard...</p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-3 py-6 sm:px-4 sm:py-10">
+    <div className="min-h-screen bg-slate-100 px-4 py-10">
       <div className="mx-auto max-w-6xl">
-
-        {/* HEADER */}
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-slate-800 p-4 text-white sm:p-6 md:flex-row md:justify-between">
+        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
-              Supervisão
-            </h1>
-            <p className="text-sm text-slate-300">
-              {perfil?.nome}
+            <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Bem-vindo, <span className="font-semibold">{perfil?.nome}</span>
+            </p>
+            <p className="mt-1 text-sm text-slate-500">
+              E-mail: <span className="font-semibold">{perfil?.email}</span>
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="rounded-xl bg-white/20 px-4 py-2 text-sm"
-            >
-              Voltar
-            </button>
+          <button
+            onClick={handleLogout}
+            className="rounded-xl bg-red-500 px-4 py-2 font-semibold text-white transition hover:bg-red-600"
+          >
+            Sair
+          </button>
+        </div>
 
-            <button
-              onClick={handleLogout}
-              className="rounded-xl bg-red-500 px-4 py-2 text-sm"
-            >
-              Sair
-            </button>
+        <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-slate-800">
+              Suas permissões
+            </h2>
+            <span className="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 sm:inline-block">
+              Acessos ativos
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {isLider && (
+              <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-4">
+                <p className="text-sm font-semibold text-green-700">Líder</p>
+                <p className="mt-1 text-xs text-green-600">
+                  Pode gerenciar sua célula e enviar relatórios.
+                </p>
+              </div>
+            )}
+
+            {isSupervisor && (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4">
+                <p className="text-sm font-semibold text-blue-700">Supervisor</p>
+                <p className="mt-1 text-xs text-blue-600">
+                  Pode acompanhar células e relatórios supervisionados.
+                </p>
+              </div>
+            )}
+
+            {isAdministracao && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
+                <p className="text-sm font-semibold text-amber-700">Administração</p>
+                <p className="mt-1 text-xs text-amber-600">
+                  Pode visualizar usuários, células e vínculos de supervisão.
+                </p>
+              </div>
+            )}
+
+            {isGestaoUsuarios && (
+              <div className="rounded-2xl border border-purple-200 bg-purple-50 px-4 py-4">
+                <p className="text-sm font-semibold text-purple-700">Gestão de Usuários</p>
+                <p className="mt-1 text-xs text-purple-600">
+                  Pode gerenciar permissões sensíveis e acessos avançados.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* BUSCA */}
-        <input
-          placeholder="Buscar célula..."
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          className="mb-6 w-full rounded-xl border p-3"
-        />
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-stretch">
+          {isLider && (
+            <>
+              <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
+                <h3 className="text-xl font-bold text-slate-800">
+                  Minha célula
+                </h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Crie ou edite as informações fixas da sua célula.
+                </p>
 
-        {/* CELULAS */}
-        <div className="space-y-4">
-          {celulasFiltradas.map((c) => (
-            <div key={c.id} className="rounded-xl bg-white p-4 shadow">
-              <h2 className="font-bold">{c.nome}</h2>
-              <p className="text-sm text-gray-500">
-                Líder: {getNomeUsuario(c.lider_id)}
+                <div className="mt-auto pt-6">
+                  <button
+                    onClick={() => router.push('/dashboard/celula')}
+                    className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700"
+                  >
+                    Minha célula
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
+                <h3 className="text-xl font-bold text-slate-800">
+                  Enviar relatório
+                </h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Preencha e envie o relatório semanal da sua célula.
+                </p>
+
+                <div className="mt-auto pt-6">
+                  <button
+                    onClick={() => router.push('/dashboard/relatorios')}
+                    className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    Enviar relatório
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {isSupervisor && (
+            <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-xl font-bold text-slate-800">
+                Supervisão
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Acompanhe relatórios e células supervisionadas.
               </p>
+
+              <div className="mt-auto pt-6">
+                <button
+                  onClick={() => router.push('/dashboard/supervisao')}
+                  className="w-full rounded-xl bg-slate-700 py-3 font-semibold text-white transition hover:bg-slate-800"
+                >
+                  Abrir supervisão
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        {/* RELATÓRIOS */}
-        <div className="mt-8 space-y-4">
-          {relatoriosFiltrados.map((r) => (
-            <div key={r.id} className="rounded-xl bg-white p-4 shadow">
-              <p className="font-bold">
-                {getNomeCelula(r.celula_id)}
+          {isAdministracao && (
+            <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-xl font-bold text-slate-800">
+                Administração
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Visualize usuários, células, relatórios e vínculos de supervisão.
               </p>
 
-              <p className="text-sm">
-                {r.realizou_celula ? 'Realizada' : 'Não realizada'}
-              </p>
+              <div className="mt-auto pt-6">
+                <button
+                  onClick={() => router.push('/dashboard/secretaria')}
+                  className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-white transition hover:bg-amber-600"
+                >
+                  Abrir administração
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
 
+          {isGestaoUsuarios && (
+            <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
+              <h3 className="text-xl font-bold text-slate-800">
+                Gestão de Usuários
+              </h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Gerencie permissões sensíveis e acessos avançados.
+              </p>
+
+              <div className="mt-auto pt-6">
+                <button
+                  onClick={() => router.push('/dashboard/admin')}
+                  className="w-full rounded-xl bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-700"
+                >
+                  Abrir gestão
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
