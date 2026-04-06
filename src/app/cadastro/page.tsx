@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -10,7 +10,6 @@ export default function Cadastro() {
   const supabase = createClient()
   const router = useRouter()
 
-  const [mounted, setMounted] = useState(false)
   const [nome, setNome] = useState('')
   const [idade, setIdade] = useState('')
   const [telefone, setTelefone] = useState('')
@@ -29,27 +28,12 @@ export default function Cadastro() {
     visible: false,
   })
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setMounted(true)
-    }, 80)
-
-    return () => clearTimeout(timer)
-  }, [])
-
   function showToast(message: string, type: ToastType = 'success') {
-    setToast({
-      message,
-      type,
-      visible: true,
-    })
+    setToast({ message, type, visible: true })
 
     setTimeout(() => {
-      setToast((prev) => ({
-        ...prev,
-        visible: false,
-      }))
-    }, 3200)
+      setToast((prev) => ({ ...prev, visible: false }))
+    }, 3000)
   }
 
   async function handleCadastro() {
@@ -99,7 +83,7 @@ export default function Cadastro() {
     ])
 
     if (errorDb) {
-      showToast('Erro ao salvar os dados do usuário.', 'error')
+      showToast('Erro ao salvar dados.', 'error')
       setLoading(false)
       return
     }
@@ -108,151 +92,83 @@ export default function Cadastro() {
 
     setTimeout(() => {
       router.push('/login')
-    }, 1600)
+    }, 1500)
 
     setLoading(false)
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-3 py-6 sm:px-4 sm:py-10">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -left-16 h-56 w-56 rounded-full bg-green-200/30 blur-3xl sm:h-72 sm:w-72" />
-        <div className="absolute top-1/3 -right-20 h-64 w-64 rounded-full bg-blue-200/30 blur-3xl sm:h-80 sm:w-80" />
-        <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-emerald-100/40 blur-3xl sm:h-72 sm:w-72" />
-      </div>
-
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-200 flex items-center justify-center px-4 py-10">
+      
+      {/* TOAST */}
       {toast.visible && (
-        <div
-          className={`fixed left-3 right-3 top-4 z-50 rounded-2xl border px-4 py-3 shadow-2xl backdrop-blur-md transition-all duration-300 sm:left-auto sm:right-5 sm:top-5 sm:min-w-[280px] sm:max-w-sm sm:px-5 sm:py-4 ${
-            toast.type === 'success'
-              ? 'border-green-200 bg-green-600 text-white'
-              : 'border-red-200 bg-red-500 text-white'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            <div
-              className={`mt-1 h-2.5 w-2.5 rounded-full ${
-                toast.type === 'success' ? 'bg-green-200' : 'bg-red-200'
-              }`}
-            />
-            <div className="text-sm font-medium">{toast.message}</div>
-          </div>
+        <div className={`fixed top-5 right-5 z-50 rounded-xl px-6 py-4 shadow-lg text-white font-medium transition
+          ${toast.type === 'success' ? 'bg-green-600' : 'bg-red-500'}`}>
+          {toast.message}
         </div>
       )}
 
-      <div className="relative z-10 flex min-h-[calc(100vh-3rem)] items-center justify-center sm:min-h-[calc(100vh-5rem)]">
-        <div
-          className={`w-full max-w-lg transform transition-all duration-700 ${
-            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
-          }`}
-        >
-          <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="bg-gradient-to-r from-green-600 to-emerald-500 px-5 py-6 text-white sm:px-8 sm:py-8">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl">
-                Conecta Sião
-              </h1>
-              <p className="mt-2 text-sm text-green-50">
-                Crie sua conta para acessar o sistema
-              </p>
-            </div>
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-xl border border-slate-200 p-8">
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold text-slate-800">Conecta Sião</h1>
+          <p className="text-sm text-slate-500 mt-2">
+            Crie sua conta para acessar o sistema
+          </p>
+        </div>
 
-            <div className="p-4 sm:p-6 md:p-8">
-              <div className="grid gap-4">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Nome
-                  </label>
-                  <input
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Digite seu nome completo"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition duration-200 placeholder:text-slate-400 focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-100"
-                  />
-                </div>
+        <div className="space-y-4">
+          <input
+            placeholder="Nome"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            className="w-full rounded-xl border px-4 py-3"
+          />
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                      Idade
-                    </label>
-                    <input
-                      type="number"
-                      value={idade}
-                      onChange={(e) => setIdade(e.target.value)}
-                      placeholder="Ex: 30"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition duration-200 placeholder:text-slate-400 focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-100"
-                    />
-                  </div>
+          <input
+            type="number"
+            placeholder="Idade"
+            value={idade}
+            onChange={(e) => setIdade(e.target.value)}
+            className="w-full rounded-xl border px-4 py-3"
+          />
 
-                  <div>
-                    <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                      Telefone
-                    </label>
-                    <input
-                      value={telefone}
-                      onChange={(e) => setTelefone(e.target.value)}
-                      placeholder="(44) 99999-9999"
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition duration-200 placeholder:text-slate-400 focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-100"
-                    />
-                  </div>
-                </div>
+          <input
+            placeholder="Telefone"
+            value={telefone}
+            onChange={(e) => setTelefone(e.target.value)}
+            className="w-full rounded-xl border px-4 py-3"
+          />
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Endereço completo
-                  </label>
-                  <input
-                    value={endereco}
-                    onChange={(e) => setEndereco(e.target.value)}
-                    placeholder="Rua, número, bairro, cidade..."
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition duration-200 placeholder:text-slate-400 focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-100"
-                  />
-                </div>
+          <input
+            placeholder="Endereço completo"
+            value={endereco}
+            onChange={(e) => setEndereco(e.target.value)}
+            className="w-full rounded-xl border px-4 py-3"
+          />
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    E-mail
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Digite seu e-mail"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition duration-200 placeholder:text-slate-400 focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-100"
-                  />
-                </div>
+          <input
+            type="email"
+            placeholder="E-mail"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded-xl border px-4 py-3"
+          />
 
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Senha
-                  </label>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Digite sua senha"
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition duration-200 placeholder:text-slate-400 focus:border-green-500 focus:bg-white focus:ring-4 focus:ring-green-100"
-                  />
-                </div>
+          <input
+            type="password"
+            placeholder="Senha"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded-xl border px-4 py-3"
+          />
 
-                <button
-                  onClick={handleCadastro}
-                  disabled={loading}
-                  className="mt-2 rounded-2xl bg-gradient-to-r from-green-600 to-emerald-500 py-3.5 text-sm font-semibold text-white shadow-lg shadow-green-200 transition duration-200 hover:-translate-y-0.5 hover:from-green-700 hover:to-emerald-600 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 sm:text-base"
-                >
-                  {loading ? 'Cadastrando...' : 'Cadastrar'}
-                </button>
-
-                <button
-                  onClick={() => router.push('/login')}
-                  type="button"
-                  className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
-                >
-                  Já tem conta? Ir para login
-                </button>
-              </div>
-            </div>
-          </div>
+          <button
+            onClick={handleCadastro}
+            disabled={loading}
+            className="w-full rounded-xl bg-green-600 py-3 text-white font-semibold hover:bg-green-700 disabled:opacity-60"
+          >
+            {loading ? 'Cadastrando...' : 'Cadastrar'}
+          </button>
         </div>
       </div>
     </div>
