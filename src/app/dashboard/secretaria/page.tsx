@@ -4,13 +4,23 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
+type Usuario = {
+  id: string
+  nome: string
+  email: string
+  is_lider?: boolean | null
+  is_supervisor?: boolean | null
+  is_secretaria?: boolean | null
+  is_super_admin?: boolean | null
+}
+
 export default function AdministracaoPage() {
   const supabase = createClient()
   const router = useRouter()
 
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [usuarios, setUsuarios] = useState<any[]>([])
+  const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [busca, setBusca] = useState('')
   const [filtro, setFiltro] = useState('todos')
 
@@ -38,7 +48,11 @@ export default function AdministracaoPage() {
         return
       }
 
-      const { data } = await supabase.from('usuarios').select('*').order('nome', { ascending: true })
+      const { data } = await supabase
+        .from('usuarios')
+        .select('*')
+        .order('nome', { ascending: true })
+
       setUsuarios(data || [])
       setLoading(false)
     }
@@ -59,7 +73,11 @@ export default function AdministracaoPage() {
       })
   }, [usuarios, busca, filtro])
 
-  async function togglePermissao(id: string, campo: string, valor: boolean) {
+  async function togglePermissao(
+    id: string,
+    campo: 'is_lider' | 'is_supervisor',
+    valor: boolean
+  ) {
     await supabase.from('usuarios').update({ [campo]: valor }).eq('id', id)
 
     setUsuarios((prev) =>
@@ -90,7 +108,7 @@ export default function AdministracaoPage() {
           }`}
         >
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between bg-gradient-to-r from-orange-500 to-amber-500 px-8 py-6 text-white">
+            <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-8 py-6 text-white">
               <div>
                 <h1 className="text-3xl font-bold">Administração</h1>
                 <p className="text-sm text-orange-50">
@@ -98,7 +116,7 @@ export default function AdministracaoPage() {
                 </p>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   onClick={() => router.push('/dashboard/secretaria/supervisao')}
                   className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
@@ -139,44 +157,80 @@ export default function AdministracaoPage() {
                 {usuariosFiltrados.map((user) => (
                   <div
                     key={user.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-slate-200 p-4 transition hover:shadow-lg md:flex-row md:items-center md:justify-between"
+                    className="rounded-2xl border border-slate-200 p-4 transition hover:shadow-lg"
                   >
-                    <div>
-                      <p className="font-semibold text-slate-800">{user.nome}</p>
-                      <p className="text-sm text-slate-500">{user.email}</p>
-                    </div>
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-lg font-semibold text-slate-800 leading-tight">
+                          {user.nome}
+                        </p>
+                        <p className="mt-1 break-all text-sm text-slate-500">
+                          {user.email}
+                        </p>
 
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() =>
-                          togglePermissao(user.id, 'is_lider', !user.is_lider)
-                        }
-                        className={`rounded-xl px-3 py-2 text-sm text-white ${
-                          user.is_lider ? 'bg-red-500' : 'bg-orange-500'
-                        }`}
-                      >
-                        {user.is_lider ? 'Remover Líder' : 'Tornar Líder'}
-                      </button>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {user.is_lider && (
+                            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                              Líder
+                            </span>
+                          )}
 
-                      <button
-                        onClick={() =>
-                          togglePermissao(
-                            user.id,
-                            'is_supervisor',
-                            !user.is_supervisor
-                          )
-                        }
-                        className={`rounded-xl px-3 py-2 text-sm text-white ${
-                          user.is_supervisor ? 'bg-red-500' : 'bg-amber-500'
-                        }`}
-                      >
-                        {user.is_supervisor
-                          ? 'Remover Supervisor'
-                          : 'Tornar Supervisor'}
-                      </button>
+                          {user.is_supervisor && (
+                            <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
+                              Supervisor
+                            </span>
+                          )}
+
+                          {!user.is_lider && !user.is_supervisor && (
+                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                              Usuário comum
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid w-full grid-cols-1 gap-2 pt-1 sm:grid-cols-2 md:w-auto md:min-w-[280px]">
+                        <button
+                          onClick={() =>
+                            togglePermissao(user.id, 'is_lider', !user.is_lider)
+                          }
+                          className={`rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${
+                            user.is_lider
+                              ? 'bg-red-500 hover:bg-red-600'
+                              : 'bg-orange-500 hover:bg-orange-600'
+                          }`}
+                        >
+                          {user.is_lider ? 'Remover Líder' : 'Tornar Líder'}
+                        </button>
+
+                        <button
+                          onClick={() =>
+                            togglePermissao(
+                              user.id,
+                              'is_supervisor',
+                              !user.is_supervisor
+                            )
+                          }
+                          className={`rounded-xl px-4 py-3 text-sm font-semibold text-white transition ${
+                            user.is_supervisor
+                              ? 'bg-red-500 hover:bg-red-600'
+                              : 'bg-amber-500 hover:bg-amber-600'
+                          }`}
+                        >
+                          {user.is_supervisor
+                            ? 'Remover Supervisor'
+                            : 'Tornar Supervisor'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
+
+                {usuariosFiltrados.length === 0 && (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">
+                    Nenhum usuário encontrado.
+                  </div>
+                )}
               </div>
             </div>
           </div>
