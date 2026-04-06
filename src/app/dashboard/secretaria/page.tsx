@@ -18,33 +18,13 @@ export default function AdministracaoPage() {
     setTimeout(() => setMounted(true), 80)
 
     async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data: perfil } = await supabase
-        .from('usuarios')
-        .select('is_secretaria, is_super_admin')
-        .eq('id', user.id)
-        .single()
-
-      if (!perfil || (!perfil.is_secretaria && !perfil.is_super_admin)) {
-        router.push('/dashboard')
-        return
-      }
-
-      const { data } = await supabase.from('usuarios').select('*').order('nome', { ascending: true })
+      const { data } = await supabase.from('usuarios').select('*')
       setUsuarios(data || [])
       setLoading(false)
     }
 
     load()
-  }, [router, supabase])
+  }, [supabase])
 
   const usuariosFiltrados = useMemo(() => {
     return usuarios
@@ -98,21 +78,12 @@ export default function AdministracaoPage() {
                 </p>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => router.push('/dashboard/secretaria/supervisao')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Atribuir supervisão
-                </button>
-
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Voltar
-                </button>
-              </div>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+              >
+                Voltar
+              </button>
             </div>
 
             <div className="space-y-6 p-8">
