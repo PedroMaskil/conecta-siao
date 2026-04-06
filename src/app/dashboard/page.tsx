@@ -20,6 +20,7 @@ export default function DashboardPage() {
 
   const [loading, setLoading] = useState(true)
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
+  const [mostrarPermissoesMobile, setMostrarPermissoesMobile] = useState(false)
 
   useEffect(() => {
     async function carregarDashboard() {
@@ -62,6 +63,13 @@ export default function DashboardPage() {
   const isAdministracao = perfil?.is_secretaria === true
   const isGestaoUsuarios = perfil?.is_super_admin === true
 
+  const totalPermissoes = [
+    isLider,
+    isSupervisor,
+    isAdministracao,
+    isGestaoUsuarios,
+  ].filter(Boolean).length
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
@@ -93,52 +101,73 @@ export default function DashboardPage() {
         </div>
 
         <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
-          <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold text-slate-800">
               Suas permissões
             </h2>
-            <span className="hidden rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500 sm:inline-block">
-              Acessos ativos
-            </span>
+
+            <button
+              type="button"
+              onClick={() => setMostrarPermissoesMobile((prev) => !prev)}
+              className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600 md:hidden"
+            >
+              {mostrarPermissoesMobile ? 'Ocultar' : `Ver (${totalPermissoes})`}
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-4 hidden flex-wrap gap-3 md:flex">
             {isLider && (
-              <div className="rounded-2xl border border-green-200 bg-green-50 px-4 py-4">
-                <p className="text-sm font-semibold text-green-700">Líder</p>
-                <p className="mt-1 text-xs text-green-600">
-                  Pode gerenciar sua célula e enviar relatórios.
-                </p>
-              </div>
+              <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
+                Líder
+              </span>
             )}
 
             {isSupervisor && (
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4">
-                <p className="text-sm font-semibold text-blue-700">Supervisor</p>
-                <p className="mt-1 text-xs text-blue-600">
-                  Pode acompanhar células e relatórios supervisionados.
-                </p>
-              </div>
+              <span className="rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+                Supervisor
+              </span>
             )}
 
             {isAdministracao && (
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-4">
-                <p className="text-sm font-semibold text-amber-700">Administração</p>
-                <p className="mt-1 text-xs text-amber-600">
-                  Pode visualizar usuários, células e vínculos de supervisão.
-                </p>
-              </div>
+              <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
+                Administração
+              </span>
             )}
 
             {isGestaoUsuarios && (
-              <div className="rounded-2xl border border-purple-200 bg-purple-50 px-4 py-4">
-                <p className="text-sm font-semibold text-purple-700">Gestão de Usuários</p>
-                <p className="mt-1 text-xs text-purple-600">
-                  Pode gerenciar permissões sensíveis e acessos avançados.
-                </p>
-              </div>
+              <span className="rounded-full bg-purple-100 px-4 py-2 text-sm font-semibold text-purple-700">
+                Gestão de Usuários
+              </span>
             )}
           </div>
+
+          {mostrarPermissoesMobile && (
+            <div className="mt-4 space-y-2 md:hidden">
+              {isLider && (
+                <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                  Líder
+                </div>
+              )}
+
+              {isSupervisor && (
+                <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                  Supervisor
+                </div>
+              )}
+
+              {isAdministracao && (
+                <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                  Administração
+                </div>
+              )}
+
+              {isGestaoUsuarios && (
+                <div className="rounded-xl bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-700">
+                  Gestão de Usuários
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-stretch">
