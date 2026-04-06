@@ -54,13 +54,13 @@ export default function DashboardCelulaPage() {
         return
       }
 
-      const { data: perfilData, error: perfilError } = await supabase
+      const { data: perfilData } = await supabase
         .from('usuarios')
         .select('id, nome, is_lider')
         .eq('id', user.id)
         .single()
 
-      if (perfilError || !perfilData || perfilData.is_lider !== true) {
+      if (!perfilData?.is_lider) {
         router.push('/dashboard')
         return
       }
@@ -148,11 +148,6 @@ export default function DashboardCelulaPage() {
     setSalvando(false)
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
@@ -162,161 +157,118 @@ export default function DashboardCelulaPage() {
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-3 py-6 sm:px-4 sm:py-10">
+      
+      {/* BG */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-green-200/30 blur-3xl" />
-        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-100/40 blur-3xl" />
+        <div className="absolute -top-20 -left-16 h-56 w-56 rounded-full bg-green-200/30 blur-3xl sm:h-72 sm:w-72" />
+        <div className="absolute top-1/3 -right-20 h-64 w-64 rounded-full bg-blue-200/30 blur-3xl sm:h-80 sm:w-80" />
+        <div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-emerald-100/40 blur-3xl sm:h-72 sm:w-72" />
       </div>
 
       <div className="relative z-10 flex justify-center">
-        <div
-          className={`w-full max-w-5xl transition-all duration-700 ${
-            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
-          }`}
-        >
+        <div className={`w-full max-w-4xl transition-all duration-700 ${
+          mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+        }`}>
+
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="flex items-center justify-between bg-gradient-to-r from-green-600 to-emerald-500 px-8 py-6 text-white">
+
+            {/* HEADER */}
+            <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-green-600 to-emerald-500 px-4 py-4 text-white sm:px-8 sm:py-6">
               <div>
-                <h1 className="text-3xl font-bold">Minha célula</h1>
-                <p className="text-sm text-green-50">
-                  Crie e edite as informações fixas da sua célula
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">
+                  Minha célula
+                </h1>
+                <p className="text-xs sm:text-sm text-green-50">
+                  Informações da célula
                 </p>
               </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Voltar
-                </button>
-              </div>
+              <button
+                onClick={() => router.push('/dashboard')}
+                className="rounded-xl bg-white/20 px-3 py-2 text-sm"
+              >
+                Voltar
+              </button>
             </div>
 
-            <div className="space-y-6 p-8">
-              <div>
-                <p className="text-sm text-slate-500">
-                  Bem-vindo, <span className="font-semibold">{perfil?.nome}</span>
-                </p>
+            {/* CONTENT */}
+            <div className="space-y-5 p-4 sm:p-6 md:p-8">
 
-                {celula && (
-                  <div className="mt-2 space-y-1 text-sm text-slate-500">
-                    <p>
-                      Código: <span className="font-semibold">{celula.codigo}</span>
-                    </p>
-                    <p>
-                      Última modificação:{' '}
-                      <span className="font-semibold">
-                        {new Date(celula.atualizado_em).toLocaleString('pt-BR', {
-                          timeZone: 'America/Sao_Paulo',
-                          dateStyle: 'short',
-                          timeStyle: 'medium',
-                        })}
-                      </span>
-                    </p>
-                  </div>
-                )}
+              <div className="text-sm text-slate-500">
+                Bem-vindo, <span className="font-semibold">{perfil?.nome}</span>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 p-6">
-                <h2 className="mb-2 text-2xl font-bold text-slate-800">
-                  {celula ? 'Editar célula' : 'Criar célula'}
-                </h2>
-
-                <p className="mb-6 text-sm text-slate-500">
-                  {celula
-                    ? 'Atualize as informações da sua célula.'
-                    : 'Cadastre sua célula para começar.'}
-                </p>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-slate-700">
-                      Nome da célula
-                    </label>
-                    <input
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="text-sm font-medium text-slate-700">
-                      Endereço
-                    </label>
-                    <input
-                      value={endereco}
-                      onChange={(e) => setEndereco(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700">
-                      Pessoas
-                    </label>
-                    <input
-                      type="number"
-                      value={quantidadePessoas}
-                      onChange={(e) => setQuantidadePessoas(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700">
-                      Tipo
-                    </label>
-                    <select
-                      value={tipoCelula}
-                      onChange={(e) => setTipoCelula(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                    >
-                      <option value="">Selecione</option>
-                      <option>Kids</option>
-                      <option>Casais</option>
-                      <option>Solteiros</option>
-                      <option>Solteiras</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-700">
-                      Dia
-                    </label>
-                    <select
-                      value={diaSemana}
-                      onChange={(e) => setDiaSemana(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                    >
-                      <option value="">Selecione</option>
-                      <option>Segunda</option>
-                      <option>Terça</option>
-                      <option>Quarta</option>
-                      <option>Quinta</option>
-                      <option>Sexta</option>
-                      <option>Sábado</option>
-                      <option>Domingo</option>
-                    </select>
-                  </div>
+              {celula && (
+                <div className="text-xs sm:text-sm text-slate-500">
+                  Código: <b>{celula.codigo}</b>
                 </div>
+              )}
 
-                <div className="mt-6">
-                  <button
-                    onClick={handleSalvarCelula}
-                    disabled={salvando}
-                    className="w-full rounded-2xl bg-gradient-to-r from-green-600 to-emerald-500 py-3.5 font-semibold text-white transition hover:from-green-700 hover:to-emerald-600 disabled:opacity-60"
-                  >
-                    {salvando
-                      ? 'Salvando...'
-                      : celula
-                      ? 'Atualizar célula'
-                      : 'Criar célula'}
-                  </button>
-                </div>
+              {/* FORM */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <input
+                  placeholder="Nome da célula"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="col-span-1 sm:col-span-2 rounded-xl p-3 border"
+                />
+
+                <input
+                  placeholder="Endereço"
+                  value={endereco}
+                  onChange={(e) => setEndereco(e.target.value)}
+                  className="col-span-1 sm:col-span-2 rounded-xl p-3 border"
+                />
+
+                <input
+                  type="number"
+                  placeholder="Pessoas"
+                  value={quantidadePessoas}
+                  onChange={(e) => setQuantidadePessoas(e.target.value)}
+                  className="rounded-xl p-3 border"
+                />
+
+                <select
+                  value={tipoCelula}
+                  onChange={(e) => setTipoCelula(e.target.value)}
+                  className="rounded-xl p-3 border"
+                >
+                  <option value="">Tipo</option>
+                  <option>Kids</option>
+                  <option>Par</option>
+                  <option>Adolescentes</option>
+                  <option>Rapazes</option>
+                  <option>Moças</option>
+                  <option>Mista</option>
+                </select>
+
+                <select
+                  value={diaSemana}
+                  onChange={(e) => setDiaSemana(e.target.value)}
+                  className="col-span-1 sm:col-span-2 rounded-xl p-3 border"
+                >
+                  <option value="">Dia</option>
+                  <option>Segunda</option>
+                  <option>Terça</option>
+                  <option>Quarta</option>
+                  <option>Quinta</option>
+                  <option>Sexta</option>
+                  <option>Sábado</option>
+                  <option>Domingo</option>
+                </select>
+
               </div>
+
+              <button
+                onClick={handleSalvarCelula}
+                disabled={salvando}
+                className="w-full rounded-xl bg-green-600 py-3 text-white"
+              >
+                {salvando ? 'Salvando...' : 'Salvar'}
+              </button>
+
             </div>
           </div>
         </div>
