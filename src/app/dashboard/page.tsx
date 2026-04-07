@@ -272,12 +272,6 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
-      <div className="mt-6 flex items-center gap-4 px-2">
-  <div className="h-px flex-1 bg-slate-300/60" />
-  <span className="text-sm text-slate-400">Sev++</span>
-  <div className="h-px flex-1 bg-slate-300/60" />
-</div>
     </div>
-    
   )
 }
