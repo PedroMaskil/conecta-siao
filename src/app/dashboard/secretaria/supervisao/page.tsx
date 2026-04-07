@@ -65,9 +65,7 @@ export default function SupervisaoPage() {
       const [{ data: usuariosData }, { data: celulasData }] = await Promise.all([
         supabase
           .from('usuarios')
-          .select(
-            'id, codigo, nome, email, is_lider, is_supervisor'
-          )
+          .select('id, codigo, nome, email, is_lider, is_supervisor')
           .order('nome', { ascending: true }),
         supabase
           .from('celulas')
@@ -164,63 +162,71 @@ export default function SupervisaoPage() {
           }`}
         >
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-            <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-6 text-white sm:px-8">
-              <div className="max-w-[220px] sm:max-w-none">
-                <h1 className="text-2xl font-bold sm:text-3xl">
-                  Atribuir supervisão
-                </h1>
+
+            {/* Header */}
+            <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-6 text-white sm:px-8">
+              <div>
+                <h1 className="text-2xl font-bold sm:text-3xl">Atribuir supervisão</h1>
                 <p className="mt-1 text-sm text-orange-50">
                   Defina qual supervisor acompanha cada célula
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex gap-2">
                 <button
                   onClick={() => router.push('/dashboard/secretaria')}
-                  className="rounded-xl bg-white/20 px-4 py-2 text-sm transition hover:bg-white/30"
+                  className="rounded-xl bg-white/20 px-3 py-2 text-sm transition hover:bg-white/30"
                 >
-                  Voltar
+                  ← Voltar
                 </button>
-
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="rounded-xl bg-white/20 px-4 py-2 text-sm transition hover:bg-white/30"
+                  className="hidden md:block rounded-xl bg-white/20 px-4 py-2 text-sm transition hover:bg-white/30"
                 >
                   Dashboard
                 </button>
               </div>
             </div>
 
-            <div className="space-y-5 p-5 sm:space-y-6 sm:p-8">
-              <div className="grid gap-3 sm:gap-4 md:grid-cols-3">
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                  <p className="text-sm text-slate-500">Total de células</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-800 sm:text-3xl">
+            <div className="space-y-5 p-4 sm:space-y-6 sm:p-8">
+
+              {/* Métricas — linha no mobile, grid no desktop */}
+              <div className="flex gap-2 md:grid md:grid-cols-3 md:gap-4">
+                <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm text-center md:p-5 md:text-left">
+                  <p className="text-xs text-slate-500 md:text-sm">Total de células</p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-800 md:mt-2 md:text-3xl">
                     {totalCelulas}
                   </h2>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                  <p className="text-sm text-slate-500">Supervisores ativos</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-800 sm:text-3xl">
+                <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm text-center md:p-5 md:text-left">
+                  <p className="text-xs text-slate-500 md:text-sm">Supervisores ativos</p>
+                  <h2 className="mt-1 text-xl font-bold text-slate-800 md:mt-2 md:text-3xl">
                     {totalSupervisores}
                   </h2>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                  <p className="text-sm text-slate-500">Células sem supervisor</p>
-                  <h2 className="mt-2 text-2xl font-bold text-slate-800 sm:text-3xl">
+                <div className={`flex-1 rounded-2xl border bg-white p-3 shadow-sm text-center md:p-5 md:text-left ${
+                  celulasSemSupervisor > 0
+                    ? 'border-orange-200 bg-orange-50'
+                    : 'border-slate-200'
+                }`}>
+                  <p className={`text-xs md:text-sm ${celulasSemSupervisor > 0 ? 'text-orange-600' : 'text-slate-500'}`}>
+                    Sem supervisor
+                  </p>
+                  <h2 className={`mt-1 text-xl font-bold md:mt-2 md:text-3xl ${
+                    celulasSemSupervisor > 0 ? 'text-orange-600' : 'text-slate-800'
+                  }`}>
                     {celulasSemSupervisor}
                   </h2>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 p-5 sm:p-6">
+              {/* Lista de células */}
+              <div className="rounded-2xl border border-slate-200 p-4 sm:p-6">
                 <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-slate-800">
-                      Células
-                    </h2>
+                    <h2 className="text-2xl font-bold text-slate-800">Células</h2>
                     <p className="text-sm text-slate-500">
                       Pesquise por célula, líder ou supervisor
                     </p>
@@ -243,158 +249,96 @@ export default function SupervisaoPage() {
                     celulasFiltradas.map((celula) => (
                       <div
                         key={celula.id}
-                        className="rounded-2xl border border-slate-200 p-4 sm:p-5"
+                        className={`rounded-2xl border overflow-hidden ${
+                          !celula.supervisor_id
+                            ? 'border-orange-200'
+                            : 'border-slate-200'
+                        }`}
                       >
-                        <div className="space-y-3 sm:hidden">
+                        {/* Cabeçalho do card — nome + líder à esquerda, tipo + dia à direita */}
+                        <div className="flex items-start justify-between p-4 border-b border-slate-100 md:hidden">
                           <div>
-                            <p className="text-xs text-slate-500">Célula</p>
-                            <p className="text-xl font-bold text-slate-800">
-                              {celula.nome}
-                            </p>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="rounded-xl bg-slate-50 px-3 py-3">
-                              <p className="text-xs text-slate-500">Tipo</p>
-                              <p className="mt-1 font-semibold text-slate-800">
-                                {celula.tipo_celula || '-'}
-                              </p>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-50 px-3 py-3">
-                              <p className="text-xs text-slate-500">Dia</p>
-                              <p className="mt-1 font-semibold text-slate-800">
-                                {celula.dia_semana || '-'}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="rounded-xl bg-slate-50 px-3 py-3">
-                            <p className="text-xs text-slate-500">Líder</p>
-                            <p className="mt-1 text-lg font-semibold leading-snug text-slate-800">
+                            <p className="font-semibold text-slate-800">{celula.nome}</p>
+                            <p className="text-sm text-slate-500 mt-0.5">
                               {getNomeUsuario(celula.lider_id)}
                             </p>
                           </div>
-
-                          <div>
-                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                              Supervisor responsável
-                            </label>
-
-                            <select
-                              value={celula.supervisor_id || ''}
-                              onChange={(e) =>
-                                atualizarSupervisorDaCelula(celula.id, e.target.value)
-                              }
-                              disabled={salvandoCelulaId === celula.id}
-                              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:opacity-60"
-                            >
-                              <option value="">Sem supervisor</option>
-                              {supervisores.map((supervisor) => (
-                                <option key={supervisor.id} value={supervisor.id}>
-                                  {supervisor.nome}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className="grid grid-cols-1 gap-3">
-                            <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
-                              Atualizado:{' '}
-                              <span className="font-semibold text-slate-700">
-                                {celula.atualizado_em
-                                  ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
-                                      timeZone: 'America/Sao_Paulo',
-                                      dateStyle: 'short',
-                                      timeStyle: 'short',
-                                    })
-                                  : '-'}
+                          <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
+                            {celula.tipo_celula && (
+                              <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
+                                {celula.tipo_celula}
                               </span>
-                            </div>
-
-                            <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
-                              Supervisor atual:{' '}
-                              <span className="font-semibold text-slate-700">
-                                {getNomeUsuario(celula.supervisor_id)}
-                              </span>
-                            </div>
+                            )}
+                            {celula.dia_semana && (
+                              <span className="text-xs text-slate-500">{celula.dia_semana}</span>
+                            )}
                           </div>
                         </div>
 
-                        <div className="hidden sm:block">
-                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                              <p className="text-sm text-slate-500">Célula</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.nome}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Líder</p>
-                              <p className="font-semibold text-slate-800 break-words">
-                                {getNomeUsuario(celula.lider_id)}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Tipo</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.tipo_celula || '-'}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Dia</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.dia_semana || '-'}
-                              </p>
-                            </div>
+                        {/* Layout desktop (original) */}
+                        <div className="hidden md:grid gap-3 md:gap-4 md:grid-cols-2 xl:grid-cols-4 p-5">
+                          <div>
+                            <p className="text-sm text-slate-500">Célula</p>
+                            <p className="font-semibold text-slate-800">{celula.nome}</p>
                           </div>
-
-                          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
-                            <div>
-                              <label className="mb-1 block text-sm font-medium text-slate-700">
-                                Supervisor responsável
-                              </label>
-
-                              <select
-                                value={celula.supervisor_id || ''}
-                                onChange={(e) =>
-                                  atualizarSupervisorDaCelula(celula.id, e.target.value)
-                                }
-                                disabled={salvandoCelulaId === celula.id}
-                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:opacity-60"
-                              >
-                                <option value="">Sem supervisor</option>
-                                {supervisores.map((supervisor) => (
-                                  <option key={supervisor.id} value={supervisor.id}>
-                                    {supervisor.nome}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-
-                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                              Atualizado:{' '}
-                              <span className="font-semibold text-slate-700">
-                                {celula.atualizado_em
-                                  ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
-                                      timeZone: 'America/Sao_Paulo',
-                                      dateStyle: 'short',
-                                      timeStyle: 'short',
-                                    })
-                                  : '-'}
-                              </span>
-                            </div>
+                          <div>
+                            <p className="text-sm text-slate-500">Líder</p>
+                            <p className="font-semibold text-slate-800 break-words">
+                              {getNomeUsuario(celula.lider_id)}
+                            </p>
                           </div>
-
-                          <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                            Supervisor atual:{' '}
-                            <span className="font-semibold text-slate-700">
-                              {getNomeUsuario(celula.supervisor_id)}
-                            </span>
+                          <div>
+                            <p className="text-sm text-slate-500">Tipo</p>
+                            <p className="font-semibold text-slate-800">
+                              {celula.tipo_celula || '-'}
+                            </p>
                           </div>
+                          <div>
+                            <p className="text-sm text-slate-500">Dia</p>
+                            <p className="font-semibold text-slate-800">
+                              {celula.dia_semana || '-'}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Select de supervisor */}
+                        <div className="p-4 md:px-5 md:pb-5 md:pt-0">
+                          {/* Label desktop */}
+                          <label className="mb-1 block text-sm font-medium text-slate-700">
+                            Supervisor responsável
+                          </label>
+
+                          <select
+                            value={celula.supervisor_id || ''}
+                            onChange={(e) =>
+                              atualizarSupervisorDaCelula(celula.id, e.target.value)
+                            }
+                            disabled={salvandoCelulaId === celula.id}
+                            className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none
+                              focus:border-orange-500 focus:ring-4 focus:ring-orange-100
+                              disabled:opacity-60
+                              ${!celula.supervisor_id
+                                ? 'border-orange-200 bg-orange-50'
+                                : 'border-slate-200 bg-slate-50'
+                              }`}
+                          >
+                            <option value="">Sem supervisor</option>
+                            {supervisores.map((supervisor) => (
+                              <option key={supervisor.id} value={supervisor.id}>
+                                {supervisor.nome}
+                              </option>
+                            ))}
+                          </select>
+
+                          <p className="mt-2 text-xs text-slate-400">
+                            {celula.atualizado_em
+                              ? `Atualizado em ${new Date(celula.atualizado_em).toLocaleString('pt-BR', {
+                                  timeZone: 'America/Sao_Paulo',
+                                  dateStyle: 'short',
+                                  timeStyle: 'short',
+                                })}`
+                              : 'Nunca atualizado'}
+                          </p>
                         </div>
                       </div>
                     ))
