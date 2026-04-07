@@ -206,7 +206,7 @@ export default function SupervisaoPage() {
                   onClick={() => router.push('/dashboard')}
                   className="hidden md:block rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
                 >
-                  Dashboard
+                  Página Inicial
                 </button>
               </div>
             </div>
