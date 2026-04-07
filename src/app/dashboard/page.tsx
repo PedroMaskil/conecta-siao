@@ -262,7 +262,7 @@ export default function DashboardPage() {
 
               <div className="mt-auto pt-6">
                 <button
-                  onClick={() => router.push('/dashboard/admin')}
+                  onClick={() => router.push('/dashboard/gestao')}
                   className="w-full rounded-xl bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-700"
                 >
                   Abrir gestão
