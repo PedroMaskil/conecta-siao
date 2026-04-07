@@ -83,9 +83,9 @@ export default function DashboardPage() {
       <div className="mx-auto max-w-6xl">
         <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+            <h1 className="text-3xl font-bold text-slate-800">Página Inicial</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Bem-vindo, <span className="font-semibold">{perfil?.nome}</span>
+              Bem-vindo <span className="font-semibold">{perfil?.nome}</span>
             </p>
             <p className="mt-1 text-sm text-slate-500">
               E-mail: <span className="font-semibold">{perfil?.email}</span>
@@ -272,6 +272,12 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+      <div className="mt-6 flex items-center gap-4 px-2">
+  <div className="h-px flex-1 bg-slate-300/60" />
+  <span className="text-sm text-slate-400">Sev++</span>
+  <div className="h-px flex-1 bg-slate-300/60" />
+</div>
     </div>
+    
   )
 }
