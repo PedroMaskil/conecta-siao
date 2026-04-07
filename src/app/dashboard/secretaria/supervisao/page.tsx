@@ -106,6 +106,27 @@ export default function SupervisaoPage() {
   const celulasSemSupervisor = celulas.filter((c) => !c.supervisor_id).length
   const totalSupervisores = supervisores.length
 
+function getCorTipoCelula(tipo: string | null) {
+  switch (tipo?.toLowerCase()) {
+    case 'adultos':
+      return 'bg-green-100 text-green-800'
+    case 'jovens':
+      return 'bg-blue-100 text-blue-800'
+    case 'adolescentes':
+      return 'bg-purple-100 text-purple-800'
+    case 'crianças':
+      return 'bg-pink-100 text-pink-800'
+    case 'casais':
+      return 'bg-amber-100 text-amber-800'
+    case 'homens':
+      return 'bg-cyan-100 text-cyan-800'
+    case 'mulheres':
+      return 'bg-rose-100 text-rose-800'
+    default:
+      return 'bg-slate-100 text-slate-600'
+  }
+}
+
   function getNomeUsuario(id: string | null) {
     if (!id) return 'Não definido'
     const usuario = usuarios.find((item) => item.id === id)
@@ -265,8 +286,8 @@ export default function SupervisaoPage() {
                           </div>
                           <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
                             {celula.tipo_celula && (
-                              <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded-md">
-                                {celula.tipo_celula}
+                              <span className={`text-xs px-2 py-1 rounded-md ${getCorTipoCelula(celula.tipo_celula)}`}>
+                               {celula.tipo_celula}
                               </span>
                             )}
                             {celula.dia_semana && (
