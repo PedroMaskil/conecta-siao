@@ -106,26 +106,28 @@ export default function SupervisaoPage() {
   const celulasSemSupervisor = celulas.filter((c) => !c.supervisor_id).length
   const totalSupervisores = supervisores.length
 
-function getCorTipoCelula(tipo: string | null) {
-  switch (tipo?.toLowerCase()) {
-    case 'adultos':
-      return 'bg-green-100 text-green-800'
-    case 'jovens':
-      return 'bg-blue-100 text-blue-800'
-    case 'adolescentes':
-      return 'bg-purple-100 text-purple-800'
-    case 'crianças':
-      return 'bg-pink-100 text-pink-800'
-    case 'casais':
-      return 'bg-amber-100 text-amber-800'
-    case 'homens':
-      return 'bg-cyan-100 text-cyan-800'
-    case 'mulheres':
-      return 'bg-rose-100 text-rose-800'
-    default:
-      return 'bg-slate-100 text-slate-600'
+  function getCorTipoCelula(tipo: string | null) {
+    switch (tipo?.toLowerCase()) {
+      case 'adultos':
+        return 'bg-green-100 text-green-800'
+      case 'jovens':
+        return 'bg-blue-100 text-blue-800'
+      case 'adolescentes':
+        return 'bg-purple-100 text-purple-800'
+      case 'crianças':
+        return 'bg-pink-100 text-pink-800'
+      case 'casais':
+        return 'bg-amber-100 text-amber-800'
+      case 'homens':
+        return 'bg-cyan-100 text-cyan-800'
+      case 'mulheres':
+        return 'bg-rose-100 text-rose-800'
+      case 'mista':
+        return 'bg-indigo-100 text-indigo-800'
+      default:
+        return 'bg-slate-100 text-slate-600'
+    }
   }
-}
 
   function getNomeUsuario(id: string | null) {
     if (!id) return 'Não definido'
@@ -196,13 +198,13 @@ function getCorTipoCelula(tipo: string | null) {
               <div className="flex gap-2">
                 <button
                   onClick={() => router.push('/dashboard/secretaria')}
-                  className="rounded-xl bg-white/20 px-3 py-2 text-sm transition hover:bg-white/30"
+                  className="rounded-xl border border-white/60 bg-transparent px-4 py-2 text-sm text-white transition hover:bg-white/20"
                 >
                   ← Voltar
                 </button>
                 <button
                   onClick={() => router.push('/dashboard')}
-                  className="hidden md:block rounded-xl bg-white/20 px-4 py-2 text-sm transition hover:bg-white/30"
+                  className="hidden md:block rounded-xl border border-white/60 bg-transparent px-4 py-2 text-sm text-white transition hover:bg-white/20"
                 >
                   Dashboard
                 </button>
@@ -227,10 +229,10 @@ function getCorTipoCelula(tipo: string | null) {
                   </h2>
                 </div>
 
-                <div className={`flex-1 rounded-2xl border bg-white p-3 shadow-sm text-center md:p-5 md:text-left ${
+                <div className={`flex-1 rounded-2xl border p-3 shadow-sm text-center md:p-5 md:text-left ${
                   celulasSemSupervisor > 0
                     ? 'border-orange-200 bg-orange-50'
-                    : 'border-slate-200'
+                    : 'border-slate-200 bg-white'
                 }`}>
                   <p className={`text-xs md:text-sm ${celulasSemSupervisor > 0 ? 'text-orange-600' : 'text-slate-500'}`}>
                     Sem supervisor
@@ -276,7 +278,7 @@ function getCorTipoCelula(tipo: string | null) {
                             : 'border-slate-200'
                         }`}
                       >
-                        {/* Cabeçalho do card — nome + líder à esquerda, tipo + dia à direita */}
+                        {/* Cabeçalho do card — visível apenas no mobile */}
                         <div className="flex items-start justify-between p-4 border-b border-slate-100 md:hidden">
                           <div>
                             <p className="font-semibold text-slate-800">{celula.nome}</p>
@@ -287,7 +289,7 @@ function getCorTipoCelula(tipo: string | null) {
                           <div className="flex flex-col items-end gap-1 ml-3 shrink-0">
                             {celula.tipo_celula && (
                               <span className={`text-xs px-2 py-1 rounded-md ${getCorTipoCelula(celula.tipo_celula)}`}>
-                               {celula.tipo_celula}
+                                {celula.tipo_celula}
                               </span>
                             )}
                             {celula.dia_semana && (
@@ -324,7 +326,6 @@ function getCorTipoCelula(tipo: string | null) {
 
                         {/* Select de supervisor */}
                         <div className="p-4 md:px-5 md:pb-5 md:pt-0">
-                          {/* Label desktop */}
                           <label className="mb-1 block text-sm font-medium text-slate-700">
                             Supervisor responsável
                           </label>
