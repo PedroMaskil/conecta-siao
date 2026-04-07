@@ -65,7 +65,9 @@ export default function SupervisaoPage() {
       const [{ data: usuariosData }, { data: celulasData }] = await Promise.all([
         supabase
           .from('usuarios')
-          .select('id, codigo, nome, email, is_lider, is_supervisor')
+          .select(
+            'id, codigo, nome, email, is_lider, is_supervisor'
+          )
           .order('nome', { ascending: true }),
         supabase
           .from('celulas')
@@ -164,7 +166,9 @@ export default function SupervisaoPage() {
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
             <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-6 text-white sm:px-8">
               <div className="max-w-[220px] sm:max-w-none">
-                <h1 className="text-2xl font-bold sm:text-3xl">Atribuir supervisão</h1>
+                <h1 className="text-2xl font-bold sm:text-3xl">
+                  Atribuir supervisão
+                </h1>
                 <p className="mt-1 text-sm text-orange-50">
                   Defina qual supervisor acompanha cada célula
                 </p>
@@ -241,37 +245,37 @@ export default function SupervisaoPage() {
                         key={celula.id}
                         className="rounded-2xl border border-slate-200 p-4 sm:p-5"
                       >
-                        <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
+                        <div className="space-y-3 sm:hidden">
                           <div>
-                            <p className="text-sm text-slate-500">Célula</p>
-                            <p className="font-semibold text-slate-800">
+                            <p className="text-xs text-slate-500">Célula</p>
+                            <p className="text-xl font-bold text-slate-800">
                               {celula.nome}
                             </p>
                           </div>
 
-                          <div>
-                            <p className="text-sm text-slate-500">Líder</p>
-                            <p className="font-semibold text-slate-800 break-words">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-xl bg-slate-50 px-3 py-3">
+                              <p className="text-xs text-slate-500">Tipo</p>
+                              <p className="mt-1 font-semibold text-slate-800">
+                                {celula.tipo_celula || '-'}
+                              </p>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-50 px-3 py-3">
+                              <p className="text-xs text-slate-500">Dia</p>
+                              <p className="mt-1 font-semibold text-slate-800">
+                                {celula.dia_semana || '-'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="rounded-xl bg-slate-50 px-3 py-3">
+                            <p className="text-xs text-slate-500">Líder</p>
+                            <p className="mt-1 text-lg font-semibold leading-snug text-slate-800">
                               {getNomeUsuario(celula.lider_id)}
                             </p>
                           </div>
 
-                          <div>
-                            <p className="text-sm text-slate-500">Tipo</p>
-                            <p className="font-semibold text-slate-800">
-                              {celula.tipo_celula || '-'}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-sm text-slate-500">Dia</p>
-                            <p className="font-semibold text-slate-800">
-                              {celula.dia_semana || '-'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
                           <div>
                             <label className="mb-1 block text-sm font-medium text-slate-700">
                               Supervisor responsável
@@ -294,25 +298,103 @@ export default function SupervisaoPage() {
                             </select>
                           </div>
 
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                            Atualizado:{' '}
-                            <span className="font-semibold text-slate-700">
-                              {celula.atualizado_em
-                                ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
-                                    timeZone: 'America/Sao_Paulo',
-                                    dateStyle: 'short',
-                                    timeStyle: 'short',
-                                  })
-                                : '-'}
-                            </span>
+                          <div className="grid grid-cols-1 gap-3">
+                            <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                              Atualizado:{' '}
+                              <span className="font-semibold text-slate-700">
+                                {celula.atualizado_em
+                                  ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
+                                      timeZone: 'America/Sao_Paulo',
+                                      dateStyle: 'short',
+                                      timeStyle: 'short',
+                                    })
+                                  : '-'}
+                              </span>
+                            </div>
+
+                            <div className="rounded-xl bg-slate-50 px-3 py-3 text-sm text-slate-500">
+                              Supervisor atual:{' '}
+                              <span className="font-semibold text-slate-700">
+                                {getNomeUsuario(celula.supervisor_id)}
+                              </span>
+                            </div>
                           </div>
                         </div>
 
-                        <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                          Supervisor atual:{' '}
-                          <span className="font-semibold text-slate-700">
-                            {getNomeUsuario(celula.supervisor_id)}
-                          </span>
+                        <div className="hidden sm:block">
+                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <div>
+                              <p className="text-sm text-slate-500">Célula</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.nome}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-slate-500">Líder</p>
+                              <p className="font-semibold text-slate-800 break-words">
+                                {getNomeUsuario(celula.lider_id)}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-slate-500">Tipo</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.tipo_celula || '-'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-slate-500">Dia</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.dia_semana || '-'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-slate-700">
+                                Supervisor responsável
+                              </label>
+
+                              <select
+                                value={celula.supervisor_id || ''}
+                                onChange={(e) =>
+                                  atualizarSupervisorDaCelula(celula.id, e.target.value)
+                                }
+                                disabled={salvandoCelulaId === celula.id}
+                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:opacity-60"
+                              >
+                                <option value="">Sem supervisor</option>
+                                {supervisores.map((supervisor) => (
+                                  <option key={supervisor.id} value={supervisor.id}>
+                                    {supervisor.nome}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                              Atualizado:{' '}
+                              <span className="font-semibold text-slate-700">
+                                {celula.atualizado_em
+                                  ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
+                                      timeZone: 'America/Sao_Paulo',
+                                      dateStyle: 'short',
+                                      timeStyle: 'short',
+                                    })
+                                  : '-'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                            Supervisor atual:{' '}
+                            <span className="font-semibold text-slate-700">
+                              {getNomeUsuario(celula.supervisor_id)}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))
