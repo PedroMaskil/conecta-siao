@@ -47,6 +47,9 @@ export default function DashboardCelulaPage() {
   const [diaSemana, setDiaSemana] = useState('')
   const [membros, setMembros] = useState<Membro[]>([])
 
+  const [novoMembro, setNovoMembro] = useState('')
+
+
   useEffect(() => {
     setTimeout(() => setMounted(true), 80)
 
@@ -103,7 +106,12 @@ export default function DashboardCelulaPage() {
   }, [router, supabase])
 
   function adicionarMembro() {
-    setMembros((prev) => [...prev, { nome: '' }])
+    const nome = novoMembro.trim()
+
+    if (!nome) return
+
+    setMembros((prev) => [...prev, { nome }])
+    setNovoMembro('')
   }
 
   function removerMembro(index: number) {
@@ -373,54 +381,61 @@ export default function DashboardCelulaPage() {
                         Membros da célula
                       </h3>
                       <p className="text-sm text-slate-500">
-                        Quantidade informada: {quantidadePessoas || '0'} • Membros cadastrados: {membros.filter((m) => m.nome.trim() !== '').length}
+                        Quantidade informada: {quantidadePessoas || '0'} • Membros cadastrados: {membros.length}
                       </p>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={adicionarMembro}
-                      className="rounded-xl bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700"
-                    >
-                      Adicionar membro
-                    </button>
                   </div>
 
-                  <div className="mt-4 space-y-3">
+                  {/* LISTA DE MEMBROS */}
+                  <div className="mt-4 space-y-2">
                     {membros.length === 0 ? (
                       <div className="rounded-xl bg-white px-4 py-4 text-sm text-slate-500">
-                        Nenhum membro cadastrado ainda.
+                        Nenhum membro adicionado ainda.
                       </div>
                     ) : (
                       membros.map((membro, index) => (
                         <div
                           key={index}
-                          className="flex flex-col gap-2 rounded-xl bg-white p-4 sm:flex-row sm:items-center"
+                          className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
                         >
-                          <div className="flex-1">
-                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                              Membro {index + 1}
-                            </label>
-                            <input
-                              value={membro.nome}
-                              onChange={(e) =>
-                                atualizarNomeMembro(index, e.target.value)
-                              }
-                              placeholder="Digite o nome do membro"
-                              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                            />
-                          </div>
+                          <span className="font-medium text-slate-800">
+                            {membro.nome}
+                          </span>
 
                           <button
                             type="button"
                             onClick={() => removerMembro(index)}
-                            className="rounded-xl bg-red-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-600"
+                            className="rounded-lg bg-red-500 px-3 py-1 text-sm font-semibold text-white hover:bg-red-600"
                           >
                             Remover
                           </button>
                         </div>
                       ))
                     )}
+                  </div>
+
+                  {/* INPUT + ADICIONAR */}
+                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+                    <input
+                      value={novoMembro}
+                      onChange={(e) => setNovoMembro(e.target.value)}
+                      placeholder="Digite o nome do membro"
+                      className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          adicionarMembro()
+                        }
+                      }}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={adicionarMembro}
+                      className="rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700"
+                    >
+                      Adicionar
+                    </button>
                   </div>
                 </div>
 
