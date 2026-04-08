@@ -120,7 +120,13 @@ export default function Login() {
             </div>
 
             <div className="p-8">
-              <div className="grid gap-4">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  handleLogin()
+                }}
+                className="grid gap-4"
+              >
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-slate-700">
                     E-mail
@@ -162,7 +168,7 @@ export default function Login() {
                 >
                   Ainda não tem conta? Criar cadastro
                 </button>
-              </div>
+              </form>
             </div>
           </div>
         </div>
