@@ -29,6 +29,8 @@ type Membro = {
   nome: string
 }
 
+type ToastType = 'success' | 'error'
+
 export default function DashboardCelulaPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -46,9 +48,17 @@ export default function DashboardCelulaPage() {
   const [tipoCelula, setTipoCelula] = useState('')
   const [diaSemana, setDiaSemana] = useState('')
   const [membros, setMembros] = useState<Membro[]>([])
-
   const [novoMembro, setNovoMembro] = useState('')
 
+  const [toast, setToast] = useState<{
+    message: string
+    type: ToastType
+    visible: boolean
+  }>({
+    message: '',
+    type: 'success',
+    visible: false,
+  })
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 80)
@@ -105,25 +115,35 @@ export default function DashboardCelulaPage() {
     carregarPagina()
   }, [router, supabase])
 
+  function showToast(message: string, type: ToastType = 'success') {
+    setToast({
+      message,
+      type,
+      visible: true,
+    })
+
+    setTimeout(() => {
+      setToast((prev) => ({
+        ...prev,
+        visible: false,
+      }))
+    }, 3000)
+  }
+
   function adicionarMembro() {
-    const nome = novoMembro.trim()
+    const nomeMembro = novoMembro.trim()
 
-    if (!nome) return
+    if (!nomeMembro) {
+      showToast('Digite o nome do membro.', 'error')
+      return
+    }
 
-    setMembros((prev) => [...prev, { nome }])
+    setMembros((prev) => [...prev, { nome: nomeMembro }])
     setNovoMembro('')
   }
 
   function removerMembro(index: number) {
     setMembros((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  function atualizarNomeMembro(index: number, valor: string) {
-    setMembros((prev) =>
-      prev.map((membro, i) =>
-        i === index ? { ...membro, nome: valor } : membro
-      )
-    )
   }
 
   async function salvarMembros(celulaId: string) {
@@ -160,7 +180,7 @@ export default function DashboardCelulaPage() {
     if (!perfil) return
 
     if (!nome || !endereco || !quantidadePessoas || !tipoCelula || !diaSemana) {
-      alert('Preencha todos os campos.')
+      showToast('Preencha todos os campos.', 'error')
       return
     }
 
@@ -184,14 +204,14 @@ export default function DashboardCelulaPage() {
           .single()
 
         if (error || !data) {
-          alert('Erro ao criar célula: ' + (error?.message || 'desconhecido'))
+          showToast('Erro ao criar célula.', 'error')
           setSalvando(false)
           return
         }
 
         await salvarMembros(data.id)
         setCelula(data)
-        alert('Célula criada com sucesso.')
+        showToast('Célula criada com sucesso!', 'success')
         setSalvando(false)
         return
       }
@@ -210,16 +230,19 @@ export default function DashboardCelulaPage() {
         .single()
 
       if (error || !data) {
-        alert('Erro ao atualizar célula: ' + (error?.message || 'desconhecido'))
+        showToast('Erro ao atualizar célula.', 'error')
         setSalvando(false)
         return
       }
 
       await salvarMembros(celula.id)
       setCelula(data)
-      alert('Célula atualizada com sucesso.')
+      showToast('Célula atualizada com sucesso!', 'success')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Erro ao salvar membros.')
+      showToast(
+        err instanceof Error ? err.message : 'Erro ao salvar membros.',
+        'error'
+      )
     }
 
     setSalvando(false)
@@ -240,6 +263,25 @@ export default function DashboardCelulaPage() {
         <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-blue-200/30 blur-3xl" />
         <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-emerald-100/40 blur-3xl" />
       </div>
+
+      {toast.visible && (
+        <div
+          className={`fixed right-5 top-5 z-50 min-w-[280px] max-w-sm rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-md transition-all duration-300 ${
+            toast.type === 'success'
+              ? 'border-green-200 bg-green-600 text-white'
+              : 'border-red-200 bg-red-500 text-white'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className={`mt-1 h-2.5 w-2.5 rounded-full ${
+                toast.type === 'success' ? 'bg-green-200' : 'bg-red-200'
+              }`}
+            />
+            <div className="text-sm font-medium">{toast.message}</div>
+          </div>
+        </div>
+      )}
 
       <div className="relative z-10 flex justify-center">
         <div
@@ -386,7 +428,6 @@ export default function DashboardCelulaPage() {
                     </div>
                   </div>
 
-                  {/* LISTA DE MEMBROS */}
                   <div className="mt-4 space-y-2">
                     {membros.length === 0 ? (
                       <div className="rounded-xl bg-white px-4 py-4 text-sm text-slate-500">
@@ -414,7 +455,6 @@ export default function DashboardCelulaPage() {
                     )}
                   </div>
 
-                  {/* INPUT + ADICIONAR */}
                   <div className="mt-4 flex flex-col gap-2 sm:flex-row">
                     <input
                       value={novoMembro}
