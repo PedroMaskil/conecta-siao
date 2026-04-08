@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
@@ -16,6 +16,16 @@ type Celula = {
   lider_id: string
 }
 
+type Membro = {
+  id: string
+  nome: string
+}
+
+type Presenca = {
+  membro_id: string
+  presente: boolean
+}
+
 export default function DashboardRelatoriosPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -26,10 +36,11 @@ export default function DashboardRelatoriosPage() {
 
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
   const [celula, setCelula] = useState<Celula | null>(null)
+  const [membros, setMembros] = useState<Membro[]>([])
+  const [presencas, setPresencas] = useState<Presenca[]>([])
 
   const [diaSemanaCelula, setDiaSemanaCelula] = useState('')
   const [realizouCelula, setRealizouCelula] = useState(true)
-  const [totalPresentes, setTotalPresentes] = useState('')
   const [visitantes, setVisitantes] = useState('')
   const [observacoes, setObservacoes] = useState('')
   const [motivoNaoRealizacao, setMotivoNaoRealizacao] = useState('')
@@ -72,11 +83,41 @@ export default function DashboardRelatoriosPage() {
       }
 
       setCelula(celulaData)
+
+      const { data: membrosData } = await supabase
+        .from('celula_membros')
+        .select('id, nome')
+        .eq('celula_id', celulaData.id)
+        .order('criado_em', { ascending: true })
+
+      const listaMembros = membrosData || []
+      setMembros(listaMembros)
+      setPresencas(
+        listaMembros.map((membro) => ({
+          membro_id: membro.id,
+          presente: false,
+        }))
+      )
+
       setLoading(false)
     }
 
     carregarPagina()
   }, [router, supabase])
+
+  function togglePresenca(membroId: string) {
+    setPresencas((prev) =>
+      prev.map((item) =>
+        item.membro_id === membroId
+          ? { ...item, presente: !item.presente }
+          : item
+      )
+    )
+  }
+
+  const totalPresentes = useMemo(() => {
+    return presencas.filter((item) => item.presente).length
+  }, [presencas])
 
   async function handleSalvarRelatorio() {
     if (!perfil || !celula) return
@@ -87,8 +128,8 @@ export default function DashboardRelatoriosPage() {
     }
 
     if (realizouCelula) {
-      if (totalPresentes === '' || visitantes === '') {
-        alert('Preencha presentes e visitantes.')
+      if (visitantes === '') {
+        alert('Preencha os visitantes.')
         return
       }
     } else {
@@ -108,29 +149,56 @@ export default function DashboardRelatoriosPage() {
       data_referencia: hoje,
       dia_semana_celula: diaSemanaCelula,
       realizou_celula: realizouCelula,
-      total_presentes: realizouCelula ? Number(totalPresentes) : 0,
+      total_presentes: realizouCelula ? totalPresentes : 0,
       visitantes: realizouCelula ? Number(visitantes) : 0,
       observacoes: realizouCelula ? observacoes : null,
       motivo_nao_realizacao: realizouCelula ? null : motivoNaoRealizacao,
     }
 
-    const { error } = await supabase
+    const { data: relatorioCriado, error } = await supabase
       .from('relatorios')
       .insert([payload])
+      .select('id')
+      .single()
 
-    if (error) {
-      alert('Erro ao salvar relatório: ' + error.message)
+    if (error || !relatorioCriado) {
+      alert('Erro ao salvar relatório: ' + (error?.message || 'desconhecido'))
       setSalvando(false)
       return
     }
 
+    if (realizouCelula && presencas.length > 0) {
+      const payloadPresencas = presencas.map((item) => ({
+        relatorio_id: relatorioCriado.id,
+        membro_id: item.membro_id,
+        presente: item.presente,
+      }))
+
+      const { error: errorPresencas } = await supabase
+        .from('relatorio_presencas')
+        .insert(payloadPresencas)
+
+      if (errorPresencas) {
+        alert('Relatório salvo, mas houve erro ao salvar presenças: ' + errorPresencas.message)
+        setSalvando(false)
+        return
+      }
+    }
+
     setDiaSemanaCelula('')
     setRealizouCelula(true)
-    setTotalPresentes('')
     setVisitantes('')
     setObservacoes('')
     setMotivoNaoRealizacao('')
+    setPresencas(
+      membros.map((membro) => ({
+        membro_id: membro.id,
+        presente: false,
+      }))
+    )
+
     setSalvando(false)
+    alert('Relatório enviado com sucesso.')
   }
 
   async function handleLogout() {
@@ -182,6 +250,13 @@ export default function DashboardRelatoriosPage() {
                   className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
                 >
                   Voltar
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+                >
+                  Sair
                 </button>
               </div>
             </div>
@@ -282,17 +357,74 @@ export default function DashboardRelatoriosPage() {
 
                   {realizouCelula ? (
                     <>
+                      <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                        <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-800">
+                              Lista de presença
+                            </h3>
+                            <p className="text-sm text-slate-500">
+                              Marque os membros que participaram da célula
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+                            Presentes: {totalPresentes}
+                          </div>
+                        </div>
+
+                        {membros.length === 0 ? (
+                          <div className="rounded-xl bg-white px-4 py-4 text-sm text-slate-500">
+                            Nenhum membro cadastrado para esta célula.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {membros.map((membro) => {
+                              const presente =
+                                presencas.find((p) => p.membro_id === membro.id)?.presente || false
+
+                              return (
+                                <button
+                                  key={membro.id}
+                                  type="button"
+                                  onClick={() => togglePresenca(membro.id)}
+                                  className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
+                                    presente
+                                      ? 'border-blue-200 bg-blue-50'
+                                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                                  }`}
+                                >
+                                  <div>
+                                    <p className="font-medium text-slate-800">
+                                      {membro.nome}
+                                    </p>
+                                  </div>
+
+                                  <div
+                                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                                      presente
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-slate-200 text-slate-700'
+                                    }`}
+                                  >
+                                    {presente ? 'Foi' : 'Não foi'}
+                                  </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+
                       <div>
                         <label className="mb-1 block text-sm font-medium text-slate-700">
                           Total de presentes
                         </label>
                         <input
                           type="number"
-                          min="0"
                           value={totalPresentes}
-                          onChange={(e) => setTotalPresentes(e.target.value)}
-                          placeholder="Ex: 12"
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                          disabled
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-600 outline-none"
                         />
                       </div>
 

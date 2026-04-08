@@ -158,17 +158,10 @@ export default function HistoricoRelatoriosPage() {
                 </button>
 
                 <button
-                  onClick={() => router.push('/dashboard')}
+                  onClick={() => router.push('/dashboard/relatorios')}
                   className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
                 >
                   Voltar
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Sair
                 </button>
               </div>
             </div>
