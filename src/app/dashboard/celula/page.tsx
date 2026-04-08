@@ -38,11 +38,13 @@ export default function DashboardCelulaPage() {
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [salvando, setSalvando] = useState(false)
+  const [buscandoCep, setBuscandoCep] = useState(false)
 
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
   const [celula, setCelula] = useState<Celula | null>(null)
 
   const [nome, setNome] = useState('')
+  const [cep, setCep] = useState('')
   const [endereco, setEndereco] = useState('')
   const [quantidadePessoas, setQuantidadePessoas] = useState('')
   const [tipoCelula, setTipoCelula] = useState('')
@@ -100,6 +102,11 @@ export default function DashboardCelulaPage() {
         setTipoCelula(celulaData.tipo_celula || '')
         setDiaSemana(celulaData.dia_semana || '')
 
+        const cepEncontrado = (celulaData.endereco || '').match(/\b\d{5}-?\d{3}\b/)
+        if (cepEncontrado) {
+          setCep(cepEncontrado[0])
+        }
+
         const { data: membrosData } = await supabase
           .from('celula_membros')
           .select('id, nome')
@@ -128,6 +135,49 @@ export default function DashboardCelulaPage() {
         visible: false,
       }))
     }, 3000)
+  }
+
+  function formatarCep(valor: string) {
+    const numeros = valor.replace(/\D/g, '').slice(0, 8)
+    if (numeros.length <= 5) return numeros
+    return `${numeros.slice(0, 5)}-${numeros.slice(5)}`
+  }
+
+  async function buscarCep() {
+    const cepLimpo = cep.replace(/\D/g, '')
+
+    if (cepLimpo.length !== 8) {
+      showToast('Digite um CEP válido.', 'error')
+      return
+    }
+
+    setBuscandoCep(true)
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepLimpo}/json/`)
+      const data = await response.json()
+
+      if (data.erro) {
+        showToast('CEP não encontrado.', 'error')
+        setBuscandoCep(false)
+        return
+      }
+
+      const partes = [
+        data.logradouro,
+        data.bairro,
+        data.localidade ? `${data.localidade} - ${data.uf}` : data.uf,
+        formatarCep(cepLimpo),
+      ].filter(Boolean)
+
+      setEndereco(partes.join(', '))
+      setCep(formatarCep(cepLimpo))
+      showToast('Endereço preenchido com sucesso!', 'success')
+    } catch {
+      showToast('Erro ao buscar CEP.', 'error')
+    }
+
+    setBuscandoCep(false)
   }
 
   function adicionarMembro() {
@@ -354,6 +404,35 @@ export default function DashboardCelulaPage() {
                     />
                   </div>
 
+                  <div>
+                    <label className="text-sm font-medium text-slate-700">
+                      CEP
+                    </label>
+                    <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={cep}
+                        onChange={(e) => setCep(formatarCep(e.target.value))}
+                        placeholder="Digite o CEP"
+                        maxLength={9}
+                        className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            buscarCep()
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={buscarCep}
+                        disabled={buscandoCep}
+                        className="rounded-xl bg-slate-700 px-4 py-3 font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60"
+                      >
+                        {buscandoCep ? 'Buscando...' : 'Buscar CEP'}
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="md:col-span-2">
                     <label className="text-sm font-medium text-slate-700">
                       Endereço
@@ -389,9 +468,10 @@ export default function DashboardCelulaPage() {
                       <option value="">Selecione</option>
                       <option>Mista</option>
                       <option>Kids</option>
-                      <option>Casais</option>
-                      <option>Solteiros</option>
-                      <option>Solteiras</option>
+                      <option>Adolescentes</option>
+                      <option>Par</option>
+                      <option>Rapazes</option>
+                      <option>Moças</option>
                     </select>
                   </div>
 
@@ -416,19 +496,17 @@ export default function DashboardCelulaPage() {
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="text-xl font-bold text-slate-800">
-                        Membros da célula
-                      </h3>
-                      <p className="text-sm text-slate-500">
-                        Quantidade informada: {quantidadePessoas || '0'} • Membros cadastrados: {membros.length}
-                      </p>
-                    </div>
+                <div className="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-bold text-slate-800">
+                      Membros da célula
+                    </h3>
+                    <p className="text-sm text-slate-500">
+                      Quantidade informada: {quantidadePessoas || '0'} • Membros cadastrados: {membros.length}
+                    </p>
                   </div>
 
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-4 space-y-3">
                     {membros.length === 0 ? (
                       <div className="rounded-xl bg-white px-4 py-4 text-sm text-slate-500">
                         Nenhum membro adicionado ainda.
@@ -437,45 +515,54 @@ export default function DashboardCelulaPage() {
                       membros.map((membro, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3"
+                          className="rounded-xl border border-slate-200 bg-white p-4"
                         >
-                          <span className="font-medium text-slate-800">
+                          <p className="text-xs text-slate-500">Membro {index + 1}</p>
+                          <p className="mt-1 break-words font-medium text-slate-800">
                             {membro.nome}
-                          </span>
+                          </p>
 
-                          <button
-                            type="button"
-                            onClick={() => removerMembro(index)}
-                            className="rounded-lg bg-red-500 px-3 py-1 text-sm font-semibold text-white hover:bg-red-600"
-                          >
-                            Remover
-                          </button>
+                          <div className="mt-3">
+                            <button
+                              type="button"
+                              onClick={() => removerMembro(index)}
+                              className="w-full rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-600 sm:w-auto"
+                            >
+                              Remover
+                            </button>
+                          </div>
                         </div>
                       ))
                     )}
                   </div>
 
-                  <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                    <input
-                      value={novoMembro}
-                      onChange={(e) => setNovoMembro(e.target.value)}
-                      placeholder="Digite o nome do membro"
-                      className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          adicionarMembro()
-                        }
-                      }}
-                    />
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
+                    <label className="mb-2 block text-sm font-medium text-slate-700">
+                      Adicionar novo membro
+                    </label>
 
-                    <button
-                      type="button"
-                      onClick={adicionarMembro}
-                      className="rounded-xl bg-green-600 px-4 py-3 font-semibold text-white hover:bg-green-700"
-                    >
-                      Adicionar
-                    </button>
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <input
+                        value={novoMembro}
+                        onChange={(e) => setNovoMembro(e.target.value)}
+                        placeholder="Digite o nome do membro"
+                        className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            adicionarMembro()
+                          }
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        onClick={adicionarMembro}
+                        className="w-full rounded-xl bg-green-600 px-4 py-3 font-semibold text-white transition hover:bg-green-700 sm:w-auto"
+                      >
+                        Adicionar
+                      </button>
+                    </div>
                   </div>
                 </div>
 
