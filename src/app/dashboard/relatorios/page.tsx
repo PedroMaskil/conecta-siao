@@ -14,6 +14,7 @@ type Celula = {
   id: string
   nome: string
   lider_id: string
+  celula_kids_id?: string | null
 }
 
 type Membro = {
@@ -42,6 +43,8 @@ export default function DashboardRelatoriosPage() {
   const [diaSemanaCelula, setDiaSemanaCelula] = useState('')
   const [realizouCelula, setRealizouCelula] = useState(true)
   const [visitantes, setVisitantes] = useState('')
+  const [quantidadeCriancas, setQuantidadeCriancas] = useState('')
+  const [teveCelulaKids, setTeveCelulaKids] = useState(false)
   const [observacoes, setObservacoes] = useState('')
   const [motivoNaoRealizacao, setMotivoNaoRealizacao] = useState('')
 
@@ -73,7 +76,7 @@ export default function DashboardRelatoriosPage() {
 
       const { data: celulaData, error: celulaError } = await supabase
         .from('celulas')
-        .select('id, nome, lider_id')
+        .select('id, nome, lider_id, celula_kids_id')
         .eq('lider_id', user.id)
         .maybeSingle()
 
@@ -119,6 +122,8 @@ export default function DashboardRelatoriosPage() {
     return presencas.filter((item) => item.presente).length
   }, [presencas])
 
+  const temCelulaKidsVinculada = !!celula?.celula_kids_id
+
   async function handleSalvarRelatorio() {
     if (!perfil || !celula) return
 
@@ -130,6 +135,11 @@ export default function DashboardRelatoriosPage() {
     if (realizouCelula) {
       if (visitantes === '') {
         alert('Preencha os visitantes.')
+        return
+      }
+
+      if (quantidadeCriancas === '') {
+        alert('Preencha a quantidade de crianças.')
         return
       }
     } else {
@@ -151,6 +161,8 @@ export default function DashboardRelatoriosPage() {
       realizou_celula: realizouCelula,
       total_presentes: realizouCelula ? totalPresentes : 0,
       visitantes: realizouCelula ? Number(visitantes) : 0,
+      quantidade_criancas: realizouCelula ? Number(quantidadeCriancas) : 0,
+      teve_celula_kids: realizouCelula && temCelulaKidsVinculada ? teveCelulaKids : null,
       observacoes: realizouCelula ? observacoes : null,
       motivo_nao_realizacao: realizouCelula ? null : motivoNaoRealizacao,
     }
@@ -188,6 +200,8 @@ export default function DashboardRelatoriosPage() {
     setDiaSemanaCelula('')
     setRealizouCelula(true)
     setVisitantes('')
+    setQuantidadeCriancas('')
+    setTeveCelulaKids(false)
     setObservacoes('')
     setMotivoNaoRealizacao('')
     setPresencas(
@@ -250,13 +264,6 @@ export default function DashboardRelatoriosPage() {
                   className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
                 >
                   Voltar
-                </button>
-
-                <button
-                  onClick={handleLogout}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Sair
                 </button>
               </div>
             </div>
@@ -394,11 +401,9 @@ export default function DashboardRelatoriosPage() {
                                       : 'border-slate-200 bg-white hover:bg-slate-50'
                                   }`}
                                 >
-                                  <div>
-                                    <p className="font-medium text-slate-800">
-                                      {membro.nome}
-                                    </p>
-                                  </div>
+                                  <p className="font-medium text-slate-800">
+                                    {membro.nome}
+                                  </p>
 
                                   <div
                                     className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -441,6 +446,54 @@ export default function DashboardRelatoriosPage() {
                           className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                         />
                       </div>
+
+                      <div>
+                        <label className="mb-1 block text-sm font-medium text-slate-700">
+                          Quantas crianças?
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={quantidadeCriancas}
+                          onChange={(e) => setQuantidadeCriancas(e.target.value)}
+                          placeholder="Ex: 5"
+                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                        />
+                      </div>
+
+                      {temCelulaKidsVinculada && (
+                        <div>
+                          <label className="mb-3 block text-sm font-medium text-slate-700">
+                            Teve célula kids?
+                          </label>
+
+                          <div className="flex gap-3">
+                            <button
+                              type="button"
+                              onClick={() => setTeveCelulaKids(true)}
+                              className={`rounded-2xl px-5 py-3 font-semibold transition ${
+                                teveCelulaKids
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              Sim
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setTeveCelulaKids(false)}
+                              className={`rounded-2xl px-5 py-3 font-semibold transition ${
+                                !teveCelulaKids
+                                  ? 'bg-slate-700 text-white'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              Não
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       <div className="md:col-span-2">
                         <label className="mb-1 block text-sm font-medium text-slate-700">
