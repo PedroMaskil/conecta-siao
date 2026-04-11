@@ -18,11 +18,14 @@ export default function DashboardPage() {
   const supabase = createClient()
   const router = useRouter()
 
+  const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
   const [mostrarPermissoesMobile, setMostrarPermissoesMobile] = useState(false)
 
   useEffect(() => {
+    setTimeout(() => setMounted(true), 80)
+
     async function carregarDashboard() {
       const {
         data: { user },
@@ -63,12 +66,7 @@ export default function DashboardPage() {
   const isAdministracao = perfil?.is_secretaria === true
   const isGestaoUsuarios = perfil?.is_super_admin === true
 
-  const totalPermissoes = [
-    isLider,
-    isSupervisor,
-    isAdministracao,
-    isGestaoUsuarios,
-  ].filter(Boolean).length
+  const totalPermissoes = [isLider, isSupervisor, isAdministracao, isGestaoUsuarios].filter(Boolean).length
 
   if (loading) {
     return (
@@ -79,197 +77,199 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 px-4 py-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-xl md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-800">Página Inicial</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Bem-vindo <span className="font-semibold">{perfil?.nome}</span>
-            </p>
-            <p className="mt-1 text-sm text-slate-500">
-              E-mail: <span className="font-semibold">{perfil?.email}</span>
-            </p>
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
+      {/* Blobs decorativos */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-blue-200/30 blur-3xl" />
+        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-slate-300/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-slate-200/40 blur-3xl" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-6xl">
+        <div
+          className={`transition-all duration-700 ${
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+          }`}
+        >
+          {/* Header */}
+          <div className="mb-6 overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
+            <div className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-slate-800">Página Inicial</h1>
+                <p className="mt-1 text-sm text-slate-500">
+                  Bem-vindo, <span className="font-semibold">{perfil?.nome}</span>
+                </p>
+                <p className="mt-0.5 text-sm text-slate-500">
+                  E-mail: <span className="font-semibold">{perfil?.email}</span>
+                </p>
+              </div>
+
+              <button
+                onClick={handleLogout}
+                className="w-fit rounded-xl bg-red-500 px-5 py-2.5 font-semibold text-white transition hover:bg-red-600"
+              >
+                Sair
+              </button>
+            </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="rounded-xl bg-red-500 px-4 py-2 font-semibold text-white transition hover:bg-red-600"
-          >
-            Sair
-          </button>
-        </div>
+          {/* Permissões */}
+          <div className="mb-6 overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-xl">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-800">Suas permissões</h2>
 
-        <div className="mb-6 rounded-2xl bg-white p-6 shadow-xl">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-800">
-              Suas permissões
-            </h2>
+              <button
+                type="button"
+                onClick={() => setMostrarPermissoesMobile((prev) => !prev)}
+                className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-200 md:hidden"
+              >
+                {mostrarPermissoesMobile ? 'Ocultar' : `Ver (${totalPermissoes})`}
+              </button>
+            </div>
 
-            <button
-              type="button"
-              onClick={() => setMostrarPermissoesMobile((prev) => !prev)}
-              className="rounded-xl bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600 md:hidden"
-            >
-              {mostrarPermissoesMobile ? 'Ocultar' : `Ver (${totalPermissoes})`}
-            </button>
+            {/* Desktop */}
+            <div className="mt-4 hidden flex-wrap gap-3 md:flex">
+              {isLider && (
+                <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
+                  Líder
+                </span>
+              )}
+              {isSupervisor && (
+                <span className="rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
+                  Supervisor
+                </span>
+              )}
+              {isAdministracao && (
+                <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
+                  Administração
+                </span>
+              )}
+              {isGestaoUsuarios && (
+                <span className="rounded-full bg-purple-100 px-4 py-2 text-sm font-semibold text-purple-700">
+                  Gestão de Usuários
+                </span>
+              )}
+              {totalPermissoes === 0 && (
+                <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-500">
+                  Nenhuma permissão atribuída
+                </span>
+              )}
+            </div>
+
+            {/* Mobile */}
+            {mostrarPermissoesMobile && (
+              <div className="mt-4 space-y-2 md:hidden">
+                {isLider && (
+                  <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
+                    Líder
+                  </div>
+                )}
+                {isSupervisor && (
+                  <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
+                    Supervisor
+                  </div>
+                )}
+                {isAdministracao && (
+                  <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+                    Administração
+                  </div>
+                )}
+                {isGestaoUsuarios && (
+                  <div className="rounded-xl bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-700">
+                    Gestão de Usuários
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="mt-4 hidden flex-wrap gap-3 md:flex">
+          {/* Cards de navegação */}
+          <div className="grid items-stretch gap-6 md:grid-cols-2 xl:grid-cols-3">
             {isLider && (
-              <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-700">
-                Líder
-              </span>
+              <>
+                <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-xl transition hover:shadow-2xl">
+                  <h3 className="text-xl font-bold text-slate-800">Minha célula</h3>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Crie ou edite as informações fixas da sua célula.
+                  </p>
+                  <div className="mt-auto pt-6">
+                    <button
+                      onClick={() => router.push('/dashboard/celula')}
+                      className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700"
+                    >
+                      Minha célula
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-xl transition hover:shadow-2xl">
+                  <h3 className="text-xl font-bold text-slate-800">Enviar relatório</h3>
+                  <p className="mt-2 text-sm text-slate-500">
+                    Preencha e envie o relatório semanal da sua célula.
+                  </p>
+                  <div className="mt-auto pt-6">
+                    <button
+                      onClick={() => router.push('/dashboard/relatorios')}
+                      className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      Enviar relatório
+                    </button>
+                  </div>
+                </div>
+              </>
             )}
 
             {isSupervisor && (
-              <span className="rounded-full bg-blue-100 px-4 py-2 text-sm font-semibold text-blue-700">
-                Supervisor
-              </span>
+              <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-xl transition hover:shadow-2xl">
+                <h3 className="text-xl font-bold text-slate-800">Supervisão</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Acompanhe relatórios e células supervisionadas.
+                </p>
+                <div className="mt-auto pt-6">
+                  <button
+                    onClick={() => router.push('/dashboard/supervisao')}
+                    className="w-full rounded-xl bg-slate-700 py-3 font-semibold text-white transition hover:bg-slate-800"
+                  >
+                    Abrir supervisão
+                  </button>
+                </div>
+              </div>
             )}
 
             {isAdministracao && (
-              <span className="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-700">
-                Administração
-              </span>
+              <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-xl transition hover:shadow-2xl">
+                <h3 className="text-xl font-bold text-slate-800">Administração</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Visualize usuários, células, relatórios e vínculos de supervisão.
+                </p>
+                <div className="mt-auto pt-6">
+                  <button
+                    onClick={() => router.push('/dashboard/administracao')}
+                    className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-white transition hover:bg-amber-600"
+                  >
+                    Abrir administração
+                  </button>
+                </div>
+              </div>
             )}
 
             {isGestaoUsuarios && (
-              <span className="rounded-full bg-purple-100 px-4 py-2 text-sm font-semibold text-purple-700">
-                Gestão de Usuários
-              </span>
+              <div className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-xl transition hover:shadow-2xl">
+                <h3 className="text-xl font-bold text-slate-800">Gestão de Usuários</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  Gerencie permissões sensíveis e acessos avançados.
+                </p>
+                <div className="mt-auto pt-6">
+                  <button
+                    onClick={() => router.push('/dashboard/gestao')}
+                    className="w-full rounded-xl bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-700"
+                  >
+                    Abrir gestão
+                  </button>
+                </div>
+              </div>
             )}
           </div>
-
-          {mostrarPermissoesMobile && (
-            <div className="mt-4 space-y-2 md:hidden">
-              {isLider && (
-                <div className="rounded-xl bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-                  Líder
-                </div>
-              )}
-
-              {isSupervisor && (
-                <div className="rounded-xl bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
-                  Supervisor
-                </div>
-              )}
-
-              {isAdministracao && (
-                <div className="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-                  Administração
-                </div>
-              )}
-
-              {isGestaoUsuarios && (
-                <div className="rounded-xl bg-purple-50 px-4 py-3 text-sm font-semibold text-purple-700">
-                  Gestão de Usuários
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 items-stretch">
-          {isLider && (
-            <>
-              <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
-                <h3 className="text-xl font-bold text-slate-800">
-                  Minha célula
-                </h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Crie ou edite as informações fixas da sua célula.
-                </p>
-
-                <div className="mt-auto pt-6">
-                  <button
-                    onClick={() => router.push('/dashboard/celula')}
-                    className="w-full rounded-xl bg-green-600 py-3 font-semibold text-white transition hover:bg-green-700"
-                  >
-                    Minha célula
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
-                <h3 className="text-xl font-bold text-slate-800">
-                  Enviar relatório
-                </h3>
-                <p className="mt-2 text-sm text-slate-500">
-                  Preencha e envie o relatório semanal da sua célula.
-                </p>
-
-                <div className="mt-auto pt-6">
-                  <button
-                    onClick={() => router.push('/dashboard/relatorios')}
-                    className="w-full rounded-xl bg-blue-600 py-3 font-semibold text-white transition hover:bg-blue-700"
-                  >
-                    Enviar relatório
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-
-          {isSupervisor && (
-            <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
-              <h3 className="text-xl font-bold text-slate-800">
-                Supervisão
-              </h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Acompanhe relatórios e células supervisionadas.
-              </p>
-
-              <div className="mt-auto pt-6">
-                <button
-                  onClick={() => router.push('/dashboard/supervisao')}
-                  className="w-full rounded-xl bg-slate-700 py-3 font-semibold text-white transition hover:bg-slate-800"
-                >
-                  Abrir supervisão
-                </button>
-              </div>
-            </div>
-          )}
-
-          {isAdministracao && (
-            <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
-              <h3 className="text-xl font-bold text-slate-800">
-                Administração
-              </h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Visualize usuários, células, relatórios e vínculos de supervisão.
-              </p>
-
-              <div className="mt-auto pt-6">
-                <button
-                  onClick={() => router.push('/dashboard/administracao')}
-                  className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-white transition hover:bg-amber-600"
-                >
-                  Abrir administração
-                </button>
-              </div>
-            </div>
-          )}
-
-          {isGestaoUsuarios && (
-            <div className="flex h-full flex-col rounded-2xl bg-white p-6 shadow-xl">
-              <h3 className="text-xl font-bold text-slate-800">
-                Gestão de Usuários
-              </h3>
-              <p className="mt-2 text-sm text-slate-500">
-                Gerencie permissões sensíveis e acessos avançados.
-              </p>
-
-              <div className="mt-auto pt-6">
-                <button
-                  onClick={() => router.push('/dashboard/gestao')}
-                  className="w-full rounded-xl bg-purple-600 py-3 font-semibold text-white transition hover:bg-purple-700"
-                >
-                  Abrir gestão
-                </button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

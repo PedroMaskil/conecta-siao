@@ -4,12 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
-type PerfilUsuario = {
-  id: string
-  nome: string
-  is_supervisor?: boolean | null
-}
-
 type Usuario = {
   id: string
   nome: string
@@ -18,60 +12,41 @@ type Usuario = {
 
 type Celula = {
   id: string
-  codigo?: number | null
   nome: string
   lider_id: string | null
   supervisor_id: string | null
-  endereco: string | null
-  quantidade_pessoas: number | null
   tipo_celula: string | null
   dia_semana: string | null
-  atualizado_em: string | null
+  celula_kids_id: string | null
 }
 
-type Relatorio = {
-  id: string
-  celula_id: string
-  lider_id: string
-  data_referencia: string
-  dia_semana_celula: string | null
-  realizou_celula: boolean | null
-  total_presentes: number | null
-  visitantes: number | null
-  observacoes: string | null
-  motivo_nao_realizacao: string | null
-  criado_em: string
-}
+type ToastType = 'success' | 'error'
 
-type Membro = {
-  id: string
-  nome: string
-}
-
-export default function SupervisaoDashboardPage() {
+export default function CelulaKidsPage() {
   const supabase = createClient()
   const router = useRouter()
 
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
 
-  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [celulas, setCelulas] = useState<Celula[]>([])
-  const [relatorios, setRelatorios] = useState<Relatorio[]>([])
-
   const [busca, setBusca] = useState('')
-  const [filtroRelatorio, setFiltroRelatorio] = useState('todos')
 
-  const [modalAberto, setModalAberto] = useState(false)
-  const [carregandoMembros, setCarregandoMembros] = useState(false)
-  const [celulaSelecionada, setCelulaSelecionada] = useState<Celula | null>(null)
-  const [membrosCelula, setMembrosCelula] = useState<Membro[]>([])
+  const [toast, setToast] = useState<{
+    visible: boolean
+    message: string
+    type: ToastType
+  }>({
+    visible: false,
+    message: '',
+    type: 'success',
+  })
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 80)
 
-    async function carregarPagina() {
+    async function load() {
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -81,548 +56,260 @@ export default function SupervisaoDashboardPage() {
         return
       }
 
-      const { data: perfilData, error: perfilError } = await supabase
+      const { data: perfil } = await supabase
         .from('usuarios')
-        .select('id, nome, is_supervisor')
+        .select('is_secretaria, is_super_admin')
         .eq('id', user.id)
         .single()
 
-      if (perfilError || !perfilData || perfilData.is_supervisor !== true) {
+      if (!perfil || (!perfil.is_secretaria && !perfil.is_super_admin)) {
         router.push('/dashboard')
         return
       }
 
-      setPerfil(perfilData)
-
-      const [
-        { data: usuariosData, error: usuariosError },
-        { data: celulasData, error: celulasError },
-      ] = await Promise.all([
-        supabase
-          .from('usuarios')
-          .select('id, nome, email')
-          .order('nome', { ascending: true }),
-
-        supabase
-          .from('celulas')
-          .select(
-            'id, codigo, nome, lider_id, supervisor_id, endereco, quantidade_pessoas, tipo_celula, dia_semana, atualizado_em'
-          )
-          .eq('supervisor_id', user.id)
-          .order('nome', { ascending: true }),
-      ])
-
-      if (usuariosError || celulasError) {
-        router.push('/dashboard')
-        return
-      }
-
-      const listaCelulas = celulasData || []
-      setUsuarios(usuariosData || [])
-      setCelulas(listaCelulas)
-
-      if (listaCelulas.length === 0) {
-        setRelatorios([])
-        setLoading(false)
-        return
-      }
-
-      const idsCelulas = listaCelulas.map((celula) => celula.id)
-
-      const { data: relatoriosData, error: relatoriosError } = await supabase
-        .from('relatorios')
-        .select(
-          'id, celula_id, lider_id, data_referencia, dia_semana_celula, realizou_celula, total_presentes, visitantes, observacoes, motivo_nao_realizacao, criado_em'
-        )
-        .in('celula_id', idsCelulas)
-        .order('criado_em', { ascending: false })
-
-      if (relatoriosError) {
-        setRelatorios([])
-        setLoading(false)
-        return
-      }
-
-      setRelatorios(relatoriosData || [])
+      await carregarDados()
       setLoading(false)
     }
 
-    carregarPagina()
+    load()
   }, [router, supabase])
+
+  function showToast(message: string, type: ToastType = 'success') {
+    setToast({ visible: true, message, type })
+    setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 3000)
+  }
+
+  async function carregarDados() {
+    const [{ data: usuariosData }, { data: celulasData }] = await Promise.all([
+      supabase.from('usuarios').select('id, nome, email').order('nome', { ascending: true }),
+      supabase.from('celulas').select('*').order('nome', { ascending: true }),
+    ])
+
+    setUsuarios(usuariosData || [])
+    setCelulas(celulasData || [])
+  }
 
   function getNomeUsuario(id: string | null) {
     if (!id) return 'Não definido'
-    const usuario = usuarios.find((item) => item.id === id)
-    return usuario ? usuario.nome : 'Não encontrado'
+    return usuarios.find((u) => u.id === id)?.nome || 'Não encontrado'
   }
 
-  function getNomeCelula(id: string) {
-    const celula = celulas.find((item) => item.id === id)
-    return celula ? celula.nome : 'Célula não encontrada'
+  function getNomeCelula(id: string | null) {
+    if (!id) return 'Sem vínculo'
+    return celulas.find((c) => c.id === id)?.nome || 'Não encontrada'
   }
 
-  const celulasFiltradas = useMemo(() => {
+  const celulasPrincipais = useMemo(() => {
     const termo = busca.toLowerCase()
+    return celulas
+      .filter((c) => c.tipo_celula !== 'Kids')
+      .filter((c) => {
+        const lider = getNomeUsuario(c.lider_id).toLowerCase()
+        return (
+          c.nome.toLowerCase().includes(termo) ||
+          lider.includes(termo) ||
+          (c.tipo_celula || '').toLowerCase().includes(termo)
+        )
+      })
+  }, [celulas, busca, usuarios])
 
-    return celulas.filter((celula) => {
-      const nomeLider = getNomeUsuario(celula.lider_id).toLowerCase()
+  const celulasKids = useMemo(() => {
+    return celulas.filter((c) => c.tipo_celula === 'Kids')
+  }, [celulas])
 
-      return (
-        celula.nome.toLowerCase().includes(termo) ||
-        nomeLider.includes(termo) ||
-        (celula.tipo_celula || '').toLowerCase().includes(termo)
-      )
-    })
-  }, [busca, celulas])
+  async function vincularCelulaKids(celulaId: string, kidsId: string) {
+    const valorFinal = kidsId === '' ? null : kidsId
 
-  const idsCelulasFiltradas = useMemo(
-    () => celulasFiltradas.map((celula) => celula.id),
-    [celulasFiltradas]
-  )
-
-  const relatoriosFiltrados = useMemo(() => {
-    let lista = relatorios.filter((relatorio) =>
-      idsCelulasFiltradas.includes(relatorio.celula_id)
-    )
-
-    if (filtroRelatorio === 'realizadas') {
-      lista = lista.filter((relatorio) => relatorio.realizou_celula === true)
-    }
-
-    if (filtroRelatorio === 'nao-realizadas') {
-      lista = lista.filter((relatorio) => relatorio.realizou_celula === false)
-    }
-
-    return lista
-  }, [relatorios, idsCelulasFiltradas, filtroRelatorio])
-
-  const totalCelulas = celulas.length
-  const totalRelatorios = relatorios.length
-  const totalNaoRealizadas = relatorios.filter(
-    (relatorio) => relatorio.realizou_celula === false
-  ).length
-
-  async function abrirModalMembros(celula: Celula) {
-    setCelulaSelecionada(celula)
-    setModalAberto(true)
-    setCarregandoMembros(true)
-    setMembrosCelula([])
-
-    const { data, error } = await supabase
-      .from('celula_membros')
-      .select('id, nome')
-      .eq('celula_id', celula.id)
-      .order('criado_em', { ascending: true })
-
-    if (error) {
-      setMembrosCelula([])
-      setCarregandoMembros(false)
+    if (valorFinal === celulaId) {
+      showToast('Uma célula não pode ser vinculada a ela mesma.', 'error')
       return
     }
 
-    setMembrosCelula(data || [])
-    setCarregandoMembros(false)
-  }
+    const { error } = await supabase
+      .from('celulas')
+      .update({ celula_kids_id: valorFinal })
+      .eq('id', celulaId)
 
-  function fecharModalMembros() {
-    setModalAberto(false)
-    setCelulaSelecionada(null)
-    setMembrosCelula([])
-    setCarregandoMembros(false)
-  }
+    if (error) {
+      showToast('Erro ao salvar vínculo da célula kids.', 'error')
+      return
+    }
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    router.push('/login')
+    setCelulas((prev) =>
+      prev.map((celula) =>
+        celula.id === celulaId ? { ...celula, celula_kids_id: valorFinal } : celula
+      )
+    )
+
+    showToast(
+      valorFinal ? 'Célula kids vinculada com sucesso!' : 'Vínculo removido com sucesso!',
+      'success'
+    )
   }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        Carregando supervisão...
+        <p className="text-slate-600">Carregando...</p>
       </div>
     )
   }
 
   return (
-    <>
-      <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-slate-200/30 blur-3xl" />
-          <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-slate-300/20 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-slate-200/30 blur-3xl" />
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-orange-200/30 blur-3xl" />
+        <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-amber-200/20 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-orange-100/30 blur-3xl" />
+      </div>
+
+      {/* ── Toast ── */}
+      {toast.visible && (
+        <div
+          className={`fixed right-5 top-5 z-50 min-w-[280px] max-w-sm rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-md transition-all duration-300 ${
+            toast.type === 'success'
+              ? 'border-green-200 bg-green-600 text-white'
+              : 'border-red-200 bg-red-500 text-white'
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${toast.type === 'success' ? 'bg-green-200' : 'bg-red-200'}`} />
+            <p className="text-sm font-medium">{toast.message}</p>
+          </div>
         </div>
+      )}
 
-        <div className="relative z-10 flex justify-center">
-          <div
-            className={`w-full max-w-7xl transition-all duration-700 ${
-              mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
-            }`}
-          >
-            <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-              <div className="flex items-center justify-between bg-gradient-to-r from-slate-700 to-slate-900 px-8 py-6 text-white">
-                <div>
-                  <h1 className="text-3xl font-bold">Supervisão</h1>
-                  <p className="text-sm text-slate-200">
-                    Acompanhe células e relatórios sob sua responsabilidade
-                  </p>
+      <div className="relative z-10 flex justify-center">
+        <div
+          className={`w-full max-w-6xl transition-all duration-700 ${
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+          }`}
+        >
+          <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
+
+            {/* Header */}
+            <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-8 py-6 text-white">
+              <div>
+                <h1 className="text-3xl font-bold">Célula Kids</h1>
+                <p className="text-sm text-orange-50">
+                  Vincule uma célula kids a uma célula principal
+                </p>
+              </div>
+              <button
+                onClick={() => router.push('/dashboard/administracao')}
+                className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+              >
+                Voltar
+              </button>
+            </div>
+
+            <div className="space-y-6 p-8">
+
+              {/* Cards resumo */}
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm text-slate-500">Células principais</p>
+                  <h2 className="mt-2 text-3xl font-bold text-slate-800">
+                    {celulas.filter((c) => c.tipo_celula !== 'Kids').length}
+                  </h2>
                 </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => router.push('/dashboard')}
-                    className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                  >
-                    Voltar
-                  </button>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm text-slate-500">Células kids</p>
+                  <h2 className="mt-2 text-3xl font-bold text-slate-800">
+                    {celulasKids.length}
+                  </h2>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm text-slate-500">Com vínculo kids</p>
+                  <h2 className="mt-2 text-3xl font-bold text-slate-800">
+                    {celulas.filter((c) => c.celula_kids_id).length}
+                  </h2>
                 </div>
               </div>
 
-              <div className="space-y-6 p-8">
-                <div className="space-y-1 text-sm text-slate-500">
-                  <p>
-                    Supervisor: <span className="font-semibold">{perfil?.nome}</span>
-                  </p>
+              {/* Lista */}
+              <div className="rounded-2xl border border-slate-200 p-6">
+                <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold text-slate-800">Vincular célula kids</h2>
+                    <p className="text-sm text-slate-500">
+                      Escolha a célula principal e a célula kids correspondente
+                    </p>
+                  </div>
+                  <input
+                    placeholder="Buscar célula..."
+                    value={busca}
+                    onChange={(e) => setBusca(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none md:max-w-sm focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                  />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-3">
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <p className="text-sm text-slate-500">Células supervisionadas</p>
-                    <h2 className="mt-2 text-3xl font-bold text-slate-800">
-                      {totalCelulas}
-                    </h2>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <p className="text-sm text-slate-500">Relatórios recebidos</p>
-                    <h2 className="mt-2 text-3xl font-bold text-slate-800">
-                      {totalRelatorios}
-                    </h2>
-                  </div>
-
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <p className="text-sm text-slate-500">Não realizadas</p>
-                    <h2 className="mt-2 text-3xl font-bold text-slate-800">
-                      {totalNaoRealizadas}
-                    </h2>
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 p-6">
-                  <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-800">
-                        Células supervisionadas
-                      </h2>
-                      <p className="text-sm text-slate-500">
-                        Pesquise por célula, líder ou tipo
-                      </p>
+                <div className="space-y-4">
+                  {celulasPrincipais.length === 0 ? (
+                    <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
+                      Nenhuma célula principal encontrada.
                     </div>
-
-                    <input
-                      placeholder="Buscar..."
-                      value={busca}
-                      onChange={(e) => setBusca(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none md:max-w-sm focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
-                    />
-                  </div>
-
-                  <div className="grid gap-4">
-                    {celulasFiltradas.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
-                        Nenhuma célula supervisionada encontrada.
-                      </div>
-                    ) : (
-                      celulasFiltradas.map((celula) => (
-                        <div
-                          key={celula.id}
-                          className="rounded-2xl border border-slate-200 p-5"
-                        >
-                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                            <div>
-                              <p className="text-sm text-slate-500">Célula</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.nome}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Líder</p>
-                              <p className="font-semibold text-slate-800">
-                                {getNomeUsuario(celula.lider_id)}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Tipo</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.tipo_celula || '-'}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Dia</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.dia_semana || '-'}
-                              </p>
-                            </div>
+                  ) : (
+                    celulasPrincipais.map((celula) => (
+                      <div key={celula.id} className="rounded-2xl border border-slate-200 p-4">
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.2fr] xl:items-end">
+                          <div>
+                            <p className="text-sm text-slate-500">Célula principal</p>
+                            <p className="font-semibold text-slate-800">{celula.nome}</p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              Líder: <span className="font-semibold">{getNomeUsuario(celula.lider_id)}</span>
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              Tipo: <span className="font-semibold">{celula.tipo_celula || '-'}</span>
+                            </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              Dia: <span className="font-semibold">{celula.dia_semana || '-'}</span>
+                            </p>
                           </div>
 
-                          <div className="mt-4 grid gap-4 md:grid-cols-2">
-                            <div>
-                              <p className="text-sm text-slate-500">Endereço</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.endereco || '-'}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Pessoas</p>
-                              <p className="font-semibold text-slate-800">
-                                {celula.quantidade_pessoas ?? 0}
-                              </p>
-                            </div>
+                          <div>
+                            <p className="text-sm text-slate-500">Kids atual</p>
+                            <p className="font-semibold text-slate-800">
+                              {getNomeCelula(celula.celula_kids_id)}
+                            </p>
                           </div>
 
-                          <div className="mt-4 flex flex-wrap gap-3">
-                            <button
-                              type="button"
-                              onClick={() => abrirModalMembros(celula)}
-                              className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                          <div>
+                            <label className="mb-1 block text-sm font-medium text-slate-700">
+                              Selecionar célula kids
+                            </label>
+                            <select
+                              value={celula.celula_kids_id || ''}
+                              onChange={(e) => vincularCelulaKids(celula.id, e.target.value)}
+                              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
                             >
-                              Ver membros
-                            </button>
-                          </div>
-
-                          <div className="mt-3 text-sm text-slate-500">
-                            Última modificação:{' '}
-                            <span className="font-semibold text-slate-700">
-                              {celula.atualizado_em
-                                ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
-                                    timeZone: 'America/Sao_Paulo',
-                                    dateStyle: 'short',
-                                    timeStyle: 'short',
-                                  })
-                                : '-'}
-                            </span>
+                              <option value="">Sem vínculo</option>
+                              {celulasKids
+                                .filter((kids) => kids.id !== celula.id)
+                                .map((kids) => (
+                                  <option key={kids.id} value={kids.id}>
+                                    {kids.nome}
+                                  </option>
+                                ))}
+                            </select>
                           </div>
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                <div className="rounded-2xl border border-slate-200 p-6">
-                  <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-slate-800">
-                        Relatórios recebidos
-                      </h2>
-                      <p className="text-sm text-slate-500">
-                        Visualize o histórico das células supervisionadas
-                      </p>
-                    </div>
-
-                    <select
-                      value={filtroRelatorio}
-                      onChange={(e) => setFiltroRelatorio(e.target.value)}
-                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
-                    >
-                      <option value="todos">Todos</option>
-                      <option value="realizadas">Só realizadas</option>
-                      <option value="nao-realizadas">Só não realizadas</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-4">
-                    {relatoriosFiltrados.length === 0 ? (
-                      <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
-                        Nenhum relatório encontrado.
                       </div>
-                    ) : (
-                      relatoriosFiltrados.map((relatorio) => (
-                        <div
-                          key={relatorio.id}
-                          className="rounded-2xl border border-slate-200 p-5"
-                        >
-                          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                            <div>
-                              <p className="text-lg font-bold text-slate-800">
-                                {getNomeCelula(relatorio.celula_id)}
-                              </p>
-                              <p className="text-sm text-slate-500">
-                                Líder:{' '}
-                                <span className="font-semibold">
-                                  {getNomeUsuario(relatorio.lider_id)}
-                                </span>
-                              </p>
-                            </div>
-
-                            <span
-                              className={`rounded-full px-3 py-1 text-sm font-semibold ${
-                                relatorio.realizou_celula
-                                  ? 'bg-blue-100 text-blue-700'
-                                  : 'bg-red-100 text-red-700'
-                              }`}
-                            >
-                              {relatorio.realizou_celula ? 'Realizada' : 'Não realizada'}
-                            </span>
-                          </div>
-
-                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                            <div>
-                              <p className="text-sm text-slate-500">Data do relatório</p>
-                              <p className="font-semibold text-slate-800">
-                                {new Date(relatorio.data_referencia).toLocaleDateString('pt-BR', {
-                                  timeZone: 'America/Sao_Paulo',
-                                })}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Dia da célula</p>
-                              <p className="font-semibold text-slate-800">
-                                {relatorio.dia_semana_celula || '-'}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Presentes</p>
-                              <p className="font-semibold text-slate-800">
-                                {relatorio.total_presentes ?? 0}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Visitantes</p>
-                              <p className="font-semibold text-slate-800">
-                                {relatorio.visitantes ?? 0}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-sm text-slate-500">Enviado em</p>
-                              <p className="font-semibold text-slate-800">
-                                {new Date(relatorio.criado_em).toLocaleString('pt-BR', {
-                                  timeZone: 'America/Sao_Paulo',
-                                  dateStyle: 'short',
-                                  timeStyle: 'short',
-                                })}
-                              </p>
-                            </div>
-                          </div>
-
-                          {relatorio.realizou_celula ? (
-                            <div className="mt-4">
-                              <p className="text-sm text-slate-500">Observações</p>
-                              <p className="mt-1 text-slate-800">
-                                {relatorio.observacoes || '-'}
-                              </p>
-                            </div>
-                          ) : (
-                            <div className="mt-4">
-                              <p className="text-sm text-slate-500">Motivo da não realização</p>
-                              <p className="mt-1 text-slate-800">
-                                {relatorio.motivo_nao_realizacao || '-'}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
+                    ))
+                  )}
                 </div>
               </div>
+
+              {/* Aviso */}
+              <div className="rounded-2xl border border-orange-200 bg-orange-50 p-5 text-sm text-orange-900">
+                Quando uma célula tiver uma célula kids vinculada, a tela de relatório
+                poderá exibir a pergunta sobre célula kids e os dados relacionados.
+              </div>
+
             </div>
           </div>
         </div>
       </div>
-
-      {modalAberto && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl">
-            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
-              <div>
-                <h3 className="text-2xl font-bold text-slate-800">
-                  Membros da célula
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {celulaSelecionada?.nome || '-'}
-                </p>
-                <p className="mt-1 text-sm text-slate-500">
-                  Líder:{' '}
-                  <span className="font-semibold">
-                    {getNomeUsuario(celulaSelecionada?.lider_id || null)}
-                  </span>
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={fecharModalMembros}
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-lg font-bold text-slate-700 transition hover:bg-slate-200"
-                aria-label="Fechar modal"
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="border-b border-slate-200 px-6 py-4">
-              <div className="flex flex-wrap gap-3">
-                <div className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
-                  Quantidade informada:{' '}
-                  <span className="font-semibold text-slate-800">
-                    {celulaSelecionada?.quantidade_pessoas ?? 0}
-                  </span>
-                </div>
-
-                <div className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
-                  Membros cadastrados:{' '}
-                  <span className="font-semibold text-slate-800">
-                    {membrosCelula.length}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              {carregandoMembros ? (
-                <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
-                  Carregando membros...
-                </div>
-              ) : membrosCelula.length === 0 ? (
-                <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
-                  Nenhum membro cadastrado para esta célula.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {membrosCelula.map((membro, index) => (
-                    <div
-                      key={membro.id}
-                      className="rounded-2xl border border-slate-200 px-4 py-4"
-                    >
-                      <p className="text-xs text-slate-500">Membro {index + 1}</p>
-                      <p className="mt-1 font-semibold text-slate-800">
-                        {membro.nome}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="border-t border-slate-200 px-6 py-4">
-              <button
-                type="button"
-                onClick={fecharModalMembros}
-                className="w-full rounded-xl bg-slate-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   )
 }
