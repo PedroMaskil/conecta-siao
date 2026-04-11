@@ -4,13 +4,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 
+type PerfilUsuario = {
+  id: string
+  nome: string
+  is_supervisor?: boolean | null
+}
+
 type Usuario = {
   id: string
-  codigo?: number | null
   nome: string
   email: string
-  is_lider?: boolean | null
-  is_supervisor?: boolean | null
 }
 
 type Celula = {
@@ -26,30 +29,49 @@ type Celula = {
   atualizado_em: string | null
 }
 
-type ToastType = 'success' | 'error'
+type Relatorio = {
+  id: string
+  celula_id: string
+  lider_id: string
+  data_referencia: string
+  dia_semana_celula: string | null
+  realizou_celula: boolean | null
+  total_presentes: number | null
+  visitantes: number | null
+  observacoes: string | null
+  motivo_nao_realizacao: string | null
+  criado_em: string
+}
 
-export default function SupervisaoPage() {
+type Membro = {
+  id: string
+  nome: string
+}
+
+export default function SupervisaoDashboardPage() {
   const supabase = createClient()
   const router = useRouter()
 
   const [mounted, setMounted] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [salvandoCelulaId, setSalvandoCelulaId] = useState<string | null>(null)
 
+  const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [celulas, setCelulas] = useState<Celula[]>([])
-  const [busca, setBusca] = useState('')
+  const [relatorios, setRelatorios] = useState<Relatorio[]>([])
 
-  const [toast, setToast] = useState<{ message: string; type: ToastType; visible: boolean }>({
-    message: '',
-    type: 'success',
-    visible: false,
-  })
+  const [busca, setBusca] = useState('')
+  const [filtroRelatorio, setFiltroRelatorio] = useState('todos')
+
+  const [modalAberto, setModalAberto] = useState(false)
+  const [carregandoMembros, setCarregandoMembros] = useState(false)
+  const [celulaSelecionada, setCelulaSelecionada] = useState<Celula | null>(null)
+  const [membrosCelula, setMembrosCelula] = useState<Membro[]>([])
 
   useEffect(() => {
     setTimeout(() => setMounted(true), 80)
 
-    async function load() {
+    async function carregarPagina() {
       const {
         data: { user },
       } = await supabase.auth.getUser()
@@ -59,147 +81,176 @@ export default function SupervisaoPage() {
         return
       }
 
-      const { data: perfil } = await supabase
+      const { data: perfilData, error: perfilError } = await supabase
         .from('usuarios')
-        .select('is_secretaria, is_super_admin')
+        .select('id, nome, is_supervisor')
         .eq('id', user.id)
         .single()
 
-      if (!perfil || (!perfil.is_secretaria && !perfil.is_super_admin)) {
+      if (perfilError || !perfilData || perfilData.is_supervisor !== true) {
         router.push('/dashboard')
         return
       }
 
-      const [{ data: usuariosData }, { data: celulasData }] = await Promise.all([
+      setPerfil(perfilData)
+
+      const [
+        { data: usuariosData, error: usuariosError },
+        { data: celulasData, error: celulasError },
+      ] = await Promise.all([
         supabase
           .from('usuarios')
-          .select('id, codigo, nome, email, is_lider, is_supervisor')
+          .select('id, nome, email')
           .order('nome', { ascending: true }),
+
         supabase
           .from('celulas')
           .select(
             'id, codigo, nome, lider_id, supervisor_id, endereco, quantidade_pessoas, tipo_celula, dia_semana, atualizado_em'
           )
+          .eq('supervisor_id', user.id)
           .order('nome', { ascending: true }),
       ])
 
+      if (usuariosError || celulasError) {
+        router.push('/dashboard')
+        return
+      }
+
+      const listaCelulas = celulasData || []
       setUsuarios(usuariosData || [])
-      setCelulas(celulasData || [])
+      setCelulas(listaCelulas)
+
+      if (listaCelulas.length === 0) {
+        setRelatorios([])
+        setLoading(false)
+        return
+      }
+
+      const idsCelulas = listaCelulas.map((celula) => celula.id)
+
+      const { data: relatoriosData, error: relatoriosError } = await supabase
+        .from('relatorios')
+        .select(
+          'id, celula_id, lider_id, data_referencia, dia_semana_celula, realizou_celula, total_presentes, visitantes, observacoes, motivo_nao_realizacao, criado_em'
+        )
+        .in('celula_id', idsCelulas)
+        .order('criado_em', { ascending: false })
+
+      if (relatoriosError) {
+        setRelatorios([])
+        setLoading(false)
+        return
+      }
+
+      setRelatorios(relatoriosData || [])
       setLoading(false)
     }
 
-    load()
+    carregarPagina()
   }, [router, supabase])
-
-  function showToast(message: string, type: ToastType = 'success') {
-    setToast({ message, type, visible: true })
-    setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), 3500)
-  }
-
-  const supervisores = useMemo(() => {
-    return usuarios.filter((u) => u.is_supervisor === true)
-  }, [usuarios])
-
-  const celulasFiltradas = useMemo(() => {
-    const termo = busca.toLowerCase()
-    return celulas.filter((celula) => {
-      const lider = usuarios.find((u) => u.id === celula.lider_id)
-      const supervisor = usuarios.find((u) => u.id === celula.supervisor_id)
-      return (
-        celula.nome.toLowerCase().includes(termo) ||
-        (lider?.nome || '').toLowerCase().includes(termo) ||
-        (supervisor?.nome || '').toLowerCase().includes(termo)
-      )
-    })
-  }, [busca, celulas, usuarios])
-
-  const totalCelulas = celulas.length
-  const celulasSemSupervisor = celulas.filter((c) => !c.supervisor_id).length
-  const totalSupervisores = supervisores.length
-
-  function getCorTipoCelula(tipo: string | null) {
-    switch (tipo?.toLowerCase()) {
-      case 'adultos': return 'bg-green-100 text-green-800'
-      case 'jovens': return 'bg-blue-100 text-blue-800'
-      case 'adolescentes': return 'bg-purple-100 text-purple-800'
-      case 'crianças': return 'bg-pink-100 text-pink-800'
-      case 'casais': return 'bg-amber-100 text-amber-800'
-      case 'homens': return 'bg-cyan-100 text-cyan-800'
-      case 'mulheres': return 'bg-rose-100 text-rose-800'
-      case 'mista': return 'bg-indigo-100 text-indigo-800'
-      default: return 'bg-slate-100 text-slate-600'
-    }
-  }
 
   function getNomeUsuario(id: string | null) {
     if (!id) return 'Não definido'
-    return usuarios.find((u) => u.id === id)?.nome ?? 'Não encontrado'
+    const usuario = usuarios.find((item) => item.id === id)
+    return usuario ? usuario.nome : 'Não encontrado'
   }
 
-  async function atualizarSupervisorDaCelula(celulaId: string, supervisorId: string) {
-    setSalvandoCelulaId(celulaId)
+  function getNomeCelula(id: string) {
+    const celula = celulas.find((item) => item.id === id)
+    return celula ? celula.nome : 'Célula não encontrada'
+  }
 
-    const valorFinal = supervisorId === '' ? null : supervisorId
+  const celulasFiltradas = useMemo(() => {
+    const termo = busca.toLowerCase()
 
-    const { error } = await supabase
-      .from('celulas')
-      .update({ supervisor_id: valorFinal })
-      .eq('id', celulaId)
+    return celulas.filter((celula) => {
+      const nomeLider = getNomeUsuario(celula.lider_id).toLowerCase()
+
+      return (
+        celula.nome.toLowerCase().includes(termo) ||
+        nomeLider.includes(termo) ||
+        (celula.tipo_celula || '').toLowerCase().includes(termo)
+      )
+    })
+  }, [busca, celulas])
+
+  const idsCelulasFiltradas = useMemo(
+    () => celulasFiltradas.map((celula) => celula.id),
+    [celulasFiltradas]
+  )
+
+  const relatoriosFiltrados = useMemo(() => {
+    let lista = relatorios.filter((relatorio) =>
+      idsCelulasFiltradas.includes(relatorio.celula_id)
+    )
+
+    if (filtroRelatorio === 'realizadas') {
+      lista = lista.filter((relatorio) => relatorio.realizou_celula === true)
+    }
+
+    if (filtroRelatorio === 'nao-realizadas') {
+      lista = lista.filter((relatorio) => relatorio.realizou_celula === false)
+    }
+
+    return lista
+  }, [relatorios, idsCelulasFiltradas, filtroRelatorio])
+
+  const totalCelulas = celulas.length
+  const totalRelatorios = relatorios.length
+  const totalNaoRealizadas = relatorios.filter(
+    (relatorio) => relatorio.realizou_celula === false
+  ).length
+
+  async function abrirModalMembros(celula: Celula) {
+    setCelulaSelecionada(celula)
+    setModalAberto(true)
+    setCarregandoMembros(true)
+    setMembrosCelula([])
+
+    const { data, error } = await supabase
+      .from('celula_membros')
+      .select('id, nome')
+      .eq('celula_id', celula.id)
+      .order('criado_em', { ascending: true })
 
     if (error) {
-      showToast('Erro ao atualizar supervisor da célula.', 'error')
-      setSalvandoCelulaId(null)
+      setMembrosCelula([])
+      setCarregandoMembros(false)
       return
     }
 
-    setCelulas((atuais) =>
-      atuais.map((celula) =>
-        celula.id === celulaId ? { ...celula, supervisor_id: valorFinal } : celula
-      )
-    )
+    setMembrosCelula(data || [])
+    setCarregandoMembros(false)
+  }
 
-    const nomeSupervisor = valorFinal ? getNomeUsuario(valorFinal) : null
-    showToast(
-      nomeSupervisor
-        ? `Supervisor atualizado para ${nomeSupervisor}.`
-        : 'Supervisor removido da célula.',
-      'success'
-    )
+  function fecharModalMembros() {
+    setModalAberto(false)
+    setCelulaSelecionada(null)
+    setMembrosCelula([])
+    setCarregandoMembros(false)
+  }
 
-    setSalvandoCelulaId(null)
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push('/login')
   }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-100">
-        <p className="text-slate-600">Carregando...</p>
+        Carregando supervisão...
       </div>
     )
   }
 
   return (
     <>
-      {/* ── Toast ── */}
-      {toast.visible && (
-        <div
-          className={`fixed right-5 top-5 z-50 min-w-[280px] max-w-sm rounded-2xl border px-5 py-4 shadow-2xl backdrop-blur-md transition-all duration-300 ${
-            toast.type === 'success'
-              ? 'border-green-200 bg-green-600 text-white'
-              : 'border-red-200 bg-red-500 text-white'
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${toast.type === 'success' ? 'bg-green-200' : 'bg-red-200'}`} />
-            <p className="text-sm font-medium">{toast.message}</p>
-          </div>
-        </div>
-      )}
-
       <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-200 px-4 py-10">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-orange-200/30 blur-3xl" />
-          <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-amber-200/20 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-orange-100/30 blur-3xl" />
+          <div className="absolute -top-20 -left-16 h-72 w-72 rounded-full bg-slate-200/30 blur-3xl" />
+          <div className="absolute top-1/3 -right-20 h-80 w-80 rounded-full bg-slate-300/20 blur-3xl" />
+          <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-slate-200/30 blur-3xl" />
         </div>
 
         <div className="relative z-10 flex justify-center">
@@ -209,164 +260,273 @@ export default function SupervisaoPage() {
             }`}
           >
             <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
-
-              {/* Header */}
-              <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-6 text-white sm:px-8">
+              <div className="flex items-center justify-between bg-gradient-to-r from-slate-700 to-slate-900 px-8 py-6 text-white">
                 <div>
-                  <h1 className="text-2xl font-bold sm:text-3xl">Atribuir supervisão</h1>
-                  <p className="mt-1 text-sm text-orange-50">
-                    Defina qual supervisor acompanha cada célula
+                  <h1 className="text-3xl font-bold">Supervisão</h1>
+                  <p className="text-sm text-slate-200">
+                    Acompanhe células e relatórios sob sua responsabilidade
                   </p>
                 </div>
-                <button
-                  onClick={() => router.push('/dashboard/administracao')}
-                  className="rounded-xl bg-white/20 px-4 py-2 text-sm font-semibold transition hover:bg-white/30"
-                >
-                  Voltar
-                </button>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => router.push('/dashboard')}
+                    className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+                  >
+                    Voltar
+                  </button>
+                </div>
               </div>
 
-              <div className="space-y-5 p-4 sm:space-y-6 sm:p-8">
+              <div className="space-y-6 p-8">
+                <div className="space-y-1 text-sm text-slate-500">
+                  <p>
+                    Supervisor: <span className="font-semibold">{perfil?.nome}</span>
+                  </p>
+                </div>
 
-                {/* Métricas */}
-                <div className="flex gap-2 md:grid md:grid-cols-3 md:gap-4">
-                  <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm text-center md:p-5 md:text-left">
-                    <p className="text-xs text-slate-500 md:text-sm">Total de células</p>
-                    <h2 className="mt-1 text-xl font-bold text-slate-800 md:mt-2 md:text-3xl">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-sm text-slate-500">Células supervisionadas</p>
+                    <h2 className="mt-2 text-3xl font-bold text-slate-800">
                       {totalCelulas}
                     </h2>
                   </div>
 
-                  <div className="flex-1 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm text-center md:p-5 md:text-left">
-                    <p className="text-xs text-slate-500 md:text-sm">Supervisores ativos</p>
-                    <h2 className="mt-1 text-xl font-bold text-slate-800 md:mt-2 md:text-3xl">
-                      {totalSupervisores}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-sm text-slate-500">Relatórios recebidos</p>
+                    <h2 className="mt-2 text-3xl font-bold text-slate-800">
+                      {totalRelatorios}
                     </h2>
                   </div>
 
-                  <div className={`flex-1 rounded-2xl border p-3 shadow-sm text-center md:p-5 md:text-left ${
-                    celulasSemSupervisor > 0
-                      ? 'border-orange-200 bg-orange-50'
-                      : 'border-slate-200 bg-white'
-                  }`}>
-                    <p className={`text-xs md:text-sm ${celulasSemSupervisor > 0 ? 'text-orange-600' : 'text-slate-500'}`}>
-                      Sem supervisor
-                    </p>
-                    <h2 className={`mt-1 text-xl font-bold md:mt-2 md:text-3xl ${
-                      celulasSemSupervisor > 0 ? 'text-orange-600' : 'text-slate-800'
-                    }`}>
-                      {celulasSemSupervisor}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <p className="text-sm text-slate-500">Não realizadas</p>
+                    <h2 className="mt-2 text-3xl font-bold text-slate-800">
+                      {totalNaoRealizadas}
                     </h2>
                   </div>
                 </div>
 
-                {/* Lista de células */}
-                <div className="rounded-2xl border border-slate-200 p-4 sm:p-6">
+                <div className="rounded-2xl border border-slate-200 p-6">
                   <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold text-slate-800">Células</h2>
+                      <h2 className="text-2xl font-bold text-slate-800">
+                        Células supervisionadas
+                      </h2>
                       <p className="text-sm text-slate-500">
-                        Pesquise por célula, líder ou supervisor
+                        Pesquise por célula, líder ou tipo
                       </p>
                     </div>
+
                     <input
                       placeholder="Buscar..."
                       value={busca}
                       onChange={(e) => setBusca(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none md:max-w-sm focus:border-orange-500 focus:ring-4 focus:ring-orange-100"
+                      className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none md:max-w-sm focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
                     />
                   </div>
 
                   <div className="grid gap-4">
                     {celulasFiltradas.length === 0 ? (
                       <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
-                        Nenhuma célula encontrada.
+                        Nenhuma célula supervisionada encontrada.
                       </div>
                     ) : (
                       celulasFiltradas.map((celula) => (
                         <div
                           key={celula.id}
-                          className={`overflow-hidden rounded-2xl border ${
-                            !celula.supervisor_id ? 'border-orange-200' : 'border-slate-200'
-                          }`}
+                          className="rounded-2xl border border-slate-200 p-5"
                         >
-                          {/* Mobile */}
-                          <div className="flex items-start justify-between border-b border-slate-100 p-4 md:hidden">
-                            <div>
-                              <p className="font-semibold text-slate-800">{celula.nome}</p>
-                              <p className="mt-0.5 text-sm text-slate-500">
-                                {getNomeUsuario(celula.lider_id)}
-                              </p>
-                            </div>
-                            <div className="ml-3 flex shrink-0 flex-col items-end gap-1">
-                              {celula.tipo_celula && (
-                                <span className={`rounded-md px-2 py-1 text-xs ${getCorTipoCelula(celula.tipo_celula)}`}>
-                                  {celula.tipo_celula}
-                                </span>
-                              )}
-                              {celula.dia_semana && (
-                                <span className="text-xs text-slate-500">{celula.dia_semana}</span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Desktop */}
-                          <div className="hidden gap-4 p-5 md:grid md:grid-cols-2 xl:grid-cols-4">
+                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                             <div>
                               <p className="text-sm text-slate-500">Célula</p>
-                              <p className="font-semibold text-slate-800">{celula.nome}</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.nome}
+                              </p>
                             </div>
+
                             <div>
                               <p className="text-sm text-slate-500">Líder</p>
-                              <p className="break-words font-semibold text-slate-800">
+                              <p className="font-semibold text-slate-800">
                                 {getNomeUsuario(celula.lider_id)}
                               </p>
                             </div>
+
                             <div>
                               <p className="text-sm text-slate-500">Tipo</p>
-                              <p className="font-semibold text-slate-800">{celula.tipo_celula || '-'}</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.tipo_celula || '-'}
+                              </p>
                             </div>
+
                             <div>
                               <p className="text-sm text-slate-500">Dia</p>
-                              <p className="font-semibold text-slate-800">{celula.dia_semana || '-'}</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.dia_semana || '-'}
+                              </p>
                             </div>
                           </div>
 
-                          {/* Select supervisor */}
-                          <div className="p-4 md:px-5 md:pb-5 md:pt-0">
-                            <label className="mb-1 block text-sm font-medium text-slate-700">
-                              Supervisor responsável
-                            </label>
-                            <select
-                              value={celula.supervisor_id || ''}
-                              onChange={(e) => atualizarSupervisorDaCelula(celula.id, e.target.value)}
-                              disabled={salvandoCelulaId === celula.id}
-                              className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition focus:border-orange-500 focus:ring-4 focus:ring-orange-100 disabled:opacity-60 ${
-                                !celula.supervisor_id
-                                  ? 'border-orange-200 bg-orange-50'
-                                  : 'border-slate-200 bg-slate-50'
-                              }`}
-                            >
-                              <option value="">Sem supervisor</option>
-                              {supervisores.map((supervisor) => (
-                                <option key={supervisor.id} value={supervisor.id}>
-                                  {supervisor.nome}
-                                </option>
-                              ))}
-                            </select>
+                          <div className="mt-4 grid gap-4 md:grid-cols-2">
+                            <div>
+                              <p className="text-sm text-slate-500">Endereço</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.endereco || '-'}
+                              </p>
+                            </div>
 
-                            <p className="mt-2 text-xs text-slate-400">
-                              {salvandoCelulaId === celula.id
-                                ? 'Salvando...'
-                                : celula.atualizado_em
-                                ? `Atualizado em ${new Date(celula.atualizado_em).toLocaleString('pt-BR', {
+                            <div>
+                              <p className="text-sm text-slate-500">Pessoas</p>
+                              <p className="font-semibold text-slate-800">
+                                {celula.quantidade_pessoas ?? 0}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() => abrirModalMembros(celula)}
+                              className="rounded-xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                              Ver membros
+                            </button>
+                          </div>
+
+                          <div className="mt-3 text-sm text-slate-500">
+                            Última modificação:{' '}
+                            <span className="font-semibold text-slate-700">
+                              {celula.atualizado_em
+                                ? new Date(celula.atualizado_em).toLocaleString('pt-BR', {
                                     timeZone: 'America/Sao_Paulo',
                                     dateStyle: 'short',
                                     timeStyle: 'short',
-                                  })}`
-                                : 'Nunca atualizado'}
-                            </p>
+                                  })
+                                : '-'}
+                            </span>
                           </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 p-6">
+                  <div className="mb-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-800">
+                        Relatórios recebidos
+                      </h2>
+                      <p className="text-sm text-slate-500">
+                        Visualize o histórico das células supervisionadas
+                      </p>
+                    </div>
+
+                    <select
+                      value={filtroRelatorio}
+                      onChange={(e) => setFiltroRelatorio(e.target.value)}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
+                    >
+                      <option value="todos">Todos</option>
+                      <option value="realizadas">Só realizadas</option>
+                      <option value="nao-realizadas">Só não realizadas</option>
+                    </select>
+                  </div>
+
+                  <div className="space-y-4">
+                    {relatoriosFiltrados.length === 0 ? (
+                      <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
+                        Nenhum relatório encontrado.
+                      </div>
+                    ) : (
+                      relatoriosFiltrados.map((relatorio) => (
+                        <div
+                          key={relatorio.id}
+                          className="rounded-2xl border border-slate-200 p-5"
+                        >
+                          <div className="mb-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <p className="text-lg font-bold text-slate-800">
+                                {getNomeCelula(relatorio.celula_id)}
+                              </p>
+                              <p className="text-sm text-slate-500">
+                                Líder:{' '}
+                                <span className="font-semibold">
+                                  {getNomeUsuario(relatorio.lider_id)}
+                                </span>
+                              </p>
+                            </div>
+
+                            <span
+                              className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                                relatorio.realizou_celula
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : 'bg-red-100 text-red-700'
+                              }`}
+                            >
+                              {relatorio.realizou_celula ? 'Realizada' : 'Não realizada'}
+                            </span>
+                          </div>
+
+                          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                            <div>
+                              <p className="text-sm text-slate-500">Data do relatório</p>
+                              <p className="font-semibold text-slate-800">
+                                {new Date(relatorio.data_referencia).toLocaleDateString('pt-BR', {
+                                  timeZone: 'America/Sao_Paulo',
+                                })}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-slate-500">Dia da célula</p>
+                              <p className="font-semibold text-slate-800">
+                                {relatorio.dia_semana_celula || '-'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-slate-500">Presentes</p>
+                              <p className="font-semibold text-slate-800">
+                                {relatorio.total_presentes ?? 0}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-slate-500">Visitantes</p>
+                              <p className="font-semibold text-slate-800">
+                                {relatorio.visitantes ?? 0}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-sm text-slate-500">Enviado em</p>
+                              <p className="font-semibold text-slate-800">
+                                {new Date(relatorio.criado_em).toLocaleString('pt-BR', {
+                                  timeZone: 'America/Sao_Paulo',
+                                  dateStyle: 'short',
+                                  timeStyle: 'short',
+                                })}
+                              </p>
+                            </div>
+                          </div>
+
+                          {relatorio.realizou_celula ? (
+                            <div className="mt-4">
+                              <p className="text-sm text-slate-500">Observações</p>
+                              <p className="mt-1 text-slate-800">
+                                {relatorio.observacoes || '-'}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-4">
+                              <p className="text-sm text-slate-500">Motivo da não realização</p>
+                              <p className="mt-1 text-slate-800">
+                                {relatorio.motivo_nao_realizacao || '-'}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       ))
                     )}
@@ -377,6 +537,92 @@ export default function SupervisaoPage() {
           </div>
         </div>
       </div>
+
+      {modalAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/70 bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <h3 className="text-2xl font-bold text-slate-800">
+                  Membros da célula
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {celulaSelecionada?.nome || '-'}
+                </p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Líder:{' '}
+                  <span className="font-semibold">
+                    {getNomeUsuario(celulaSelecionada?.lider_id || null)}
+                  </span>
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fecharModalMembros}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-lg font-bold text-slate-700 transition hover:bg-slate-200"
+                aria-label="Fechar modal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="border-b border-slate-200 px-6 py-4">
+              <div className="flex flex-wrap gap-3">
+                <div className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                  Quantidade informada:{' '}
+                  <span className="font-semibold text-slate-800">
+                    {celulaSelecionada?.quantidade_pessoas ?? 0}
+                  </span>
+                </div>
+
+                <div className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600">
+                  Membros cadastrados:{' '}
+                  <span className="font-semibold text-slate-800">
+                    {membrosCelula.length}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-6 py-5">
+              {carregandoMembros ? (
+                <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
+                  Carregando membros...
+                </div>
+              ) : membrosCelula.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 p-6 text-center text-slate-500">
+                  Nenhum membro cadastrado para esta célula.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {membrosCelula.map((membro, index) => (
+                    <div
+                      key={membro.id}
+                      className="rounded-2xl border border-slate-200 px-4 py-4"
+                    >
+                      <p className="text-xs text-slate-500">Membro {index + 1}</p>
+                      <p className="mt-1 font-semibold text-slate-800">
+                        {membro.nome}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="border-t border-slate-200 px-6 py-4">
+              <button
+                type="button"
+                onClick={fecharModalMembros}
+                className="w-full rounded-xl bg-slate-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 sm:w-auto"
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
