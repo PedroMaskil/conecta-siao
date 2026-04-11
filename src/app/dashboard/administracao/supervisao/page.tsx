@@ -197,16 +197,10 @@ export default function SupervisaoPage() {
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => router.push('/dashboard/secretaria')}
+                  onClick={() => router.push('/dashboard/administracao')}
                   className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
                 >
                   Voltar
-                </button>
-                <button
-                  onClick={() => router.push('/dashboard')}
-                  className="hidden md:block rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Página Inicial
                 </button>
               </div>
             </div>

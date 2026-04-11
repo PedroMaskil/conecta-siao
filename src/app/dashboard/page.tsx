@@ -242,7 +242,7 @@ export default function DashboardPage() {
 
               <div className="mt-auto pt-6">
                 <button
-                  onClick={() => router.push('/dashboard/secretaria')}
+                  onClick={() => router.push('/dashboard/administracao')}
                   className="w-full rounded-xl bg-amber-500 py-3 font-semibold text-white transition hover:bg-amber-600"
                 >
                   Abrir administração

@@ -110,7 +110,7 @@ export default function AdministracaoPage() {
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
             <div className="flex flex-wrap items-start justify-between gap-3 bg-gradient-to-r from-orange-500 to-amber-500 px-8 py-6 text-white">
               <div>
-                <h1 className="text-3xl font-bold">Administração</h1>
+                <h1 className="text-3xl font-bold">Atribuição de Usuários</h1>
                 <p className="text-sm text-orange-50">
                   Gestão de usuários e permissões
                 </p>
@@ -118,14 +118,7 @@ export default function AdministracaoPage() {
 
               <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => router.push('/dashboard/secretaria/supervisao')}
-                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
-                >
-                  Atribuir supervisão
-                </button>
-
-                <button
-                  onClick={() => router.push('/dashboard')}
+                  onClick={() => router.push('/dashboard/administracao')}
                   className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
                 >
                   Voltar
