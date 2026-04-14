@@ -339,25 +339,25 @@ export default function DashboardCelulaPage() {
                 <h2 className="mb-1 text-xl font-bold text-slate-800 sm:text-2xl">{celula ? 'Editar célula' : 'Criar célula'}</h2>
                 <p className="mb-5 text-sm text-slate-500">{celula ? 'Atualize as informações da sua célula.' : 'Cadastre sua célula para começar.'}</p>
 
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-4">
 
                   {/* Nome */}
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="text-sm font-medium text-slate-700">Nome da célula</label>
                     <input value={nome} onChange={(e) => setNome(e.target.value)}
                       className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100" />
                   </div>
 
-                  {/* CEP + botão — ocupa linha inteira no mobile */}
-                  <div className="sm:col-span-2 md:col-span-1">
+                  {/* CEP — linha própria, sem grid */}
+                  <div>
                     <label className="text-sm font-medium text-slate-700">CEP</label>
-                    <div className="mt-1 flex gap-2">
+                    <div className="mt-1 flex w-full gap-2">
                       <input value={cep} onChange={(e) => setCep(formatarCep(e.target.value))}
                         placeholder="00000-000" maxLength={9}
                         className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100"
                         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); buscarCep() } }} />
                       <button type="button" onClick={buscarCep} disabled={buscandoCep}
-                        className="shrink-0 rounded-xl bg-slate-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
+                        className="w-24 shrink-0 rounded-xl bg-slate-700 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:opacity-60">
                         {buscandoCep ? '...' : 'Buscar'}
                       </button>
                     </div>
@@ -373,7 +373,7 @@ export default function DashboardCelulaPage() {
                   </div>
 
                   {/* Endereço somente leitura */}
-                  <div className="sm:col-span-2">
+                  <div>
                     <label className="text-sm font-medium text-slate-700">
                       Endereço <span className="font-normal text-slate-400">(preenchido pelo CEP)</span>
                     </label>
@@ -381,31 +381,31 @@ export default function DashboardCelulaPage() {
                       className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm text-slate-500 outline-none" />
                   </div>
 
-                  {/* Quantidade */}
-                  <div>
-                    <label className="text-sm font-medium text-slate-700">Qtd. de pessoas</label>
-                    <input type="number" value={quantidadePessoas} onChange={(e) => setQuantidadePessoas(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100" />
+                  {/* Quantidade + Tipo lado a lado */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-sm font-medium text-slate-700">Qtd. pessoas</label>
+                      <input type="number" value={quantidadePessoas} onChange={(e) => setQuantidadePessoas(e.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-700">Tipo</label>
+                      <select value={tipoCelula} onChange={(e) => setTipoCelula(e.target.value)}
+                        className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100">
+                        <option value="">Selecione</option>
+                        <option>Mista</option><option>Kids</option><option>Adolescentes</option>
+                        <option>Par</option><option>Rapazes</option><option>Moças</option>
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Tipo */}
+                  {/* Dia — botões em grade 4 colunas no mobile */}
                   <div>
-                    <label className="text-sm font-medium text-slate-700">Tipo</label>
-                    <select value={tipoCelula} onChange={(e) => setTipoCelula(e.target.value)}
-                      className="mt-1 w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none focus:border-green-500 focus:ring-4 focus:ring-green-100">
-                      <option value="">Selecione</option>
-                      <option>Mista</option><option>Kids</option><option>Adolescentes</option>
-                      <option>Par</option><option>Rapazes</option><option>Moças</option>
-                    </select>
-                  </div>
-
-                  {/* Dia — botões em grade no mobile */}
-                  <div className="sm:col-span-2">
                     <label className="mb-2 block text-sm font-medium text-slate-700">Dia da semana</label>
                     <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
                       {['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'].map((dia) => (
                         <button key={dia} type="button" onClick={() => setDiaSemana(dia)}
-                          className={`rounded-xl py-2.5 text-xs font-semibold transition sm:text-sm ${
+                          className={`rounded-xl py-2.5 text-xs font-semibold transition ${
                             diaSemana === dia ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                           }`}>
                           {dia.slice(0, 3)}
