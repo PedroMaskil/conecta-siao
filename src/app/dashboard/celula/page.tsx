@@ -330,7 +330,7 @@ export default function DashboardCelulaPage() {
                 onClick={modo === 'lista' ? () => router.push('/dashboard') : voltarParaLista}
                 className="rounded-xl bg-white/20 px-3 py-2 text-sm font-semibold transition hover:bg-white/30"
               > 
-                {modo === 'lista' ? 'Voltar' : '← Minhas células'}
+                {modo === 'lista' ? 'Voltar' : 'Voltar'}
               </button>
             </div>
 
