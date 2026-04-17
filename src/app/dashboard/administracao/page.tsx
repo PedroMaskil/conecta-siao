@@ -73,7 +73,7 @@ export default function AdministracaoHome() {
     {
       titulo: 'Membros e células',
       descricao: 'Visualização geral das células',
-      rota: '/dashboard/administracao/membros',
+      rota: '/dashboard/administracao/membros-celula',
       cor: 'bg-green-600 hover:bg-green-700',
       label: 'Ver membros',
     },
