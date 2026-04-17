@@ -38,7 +38,7 @@ export default function HistoricoRelatoriosPage() {
   const [loading, setLoading] = useState(true)
 
   const [perfil, setPerfil] = useState<PerfilUsuario | null>(null)
-  const [celula, setCelula] = useState<Celula | null>(null)
+  const [celulas, setCelulas] = useState<Celula[]>([])
   const [relatorios, setRelatorios] = useState<Relatorio[]>([])
   const [filtro, setFiltro] = useState('todos')
 
@@ -46,9 +46,14 @@ export default function HistoricoRelatoriosPage() {
     setTimeout(() => setMounted(true), 80)
 
     async function carregarPagina() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
-      if (!user) { router.push('/login'); return }
+      if (!user) {
+        router.push('/login')
+        return
+      }
 
       const { data: perfilData, error: perfilError } = await supabase
         .from('usuarios')
@@ -57,30 +62,39 @@ export default function HistoricoRelatoriosPage() {
         .single()
 
       if (perfilError || !perfilData || perfilData.is_lider !== true) {
-        router.push('/dashboard'); return
+        router.push('/dashboard')
+        return
       }
 
       setPerfil(perfilData)
 
-      const { data: celulaData, error: celulaError } = await supabase
+      const { data: celulasData, error: celulasError } = await supabase
         .from('celulas')
         .select('id, nome, lider_id')
         .eq('lider_id', user.id)
-        .maybeSingle()
+        .order('nome', { ascending: true })
 
-      if (celulaError || !celulaData) {
-        router.push('/dashboard/celula'); return
+      if (celulasError || !celulasData || celulasData.length === 0) {
+        router.push('/dashboard/celula')
+        return
       }
 
-      setCelula(celulaData)
+      setCelulas(celulasData)
 
       const { data: relatoriosData, error: relatoriosError } = await supabase
         .from('relatorios')
-        .select('id, celula_id, lider_id, data_referencia, dia_semana_celula, realizou_celula, total_presentes, visitantes, observacoes, motivo_nao_realizacao, criado_em')
+        .select(
+          'id, celula_id, lider_id, data_referencia, dia_semana_celula, realizou_celula, total_presentes, visitantes, observacoes, motivo_nao_realizacao, criado_em'
+        )
         .eq('lider_id', user.id)
         .order('criado_em', { ascending: false })
 
-      if (relatoriosError) { router.push('/dashboard/relatorios'); return }
+      if (relatoriosError) {
+        console.error('Erro ao carregar relatórios:', relatoriosError)
+        setRelatorios([])
+        setLoading(false)
+        return
+      }
 
       setRelatorios(relatoriosData || [])
       setLoading(false)
@@ -94,6 +108,10 @@ export default function HistoricoRelatoriosPage() {
     if (filtro === 'nao-realizadas') return relatorios.filter((r) => r.realizou_celula === false)
     return relatorios
   }, [relatorios, filtro])
+
+  function getNomeCelula(celulaId: string) {
+    return celulas.find((c) => c.id === celulaId)?.nome || 'Não encontrada'
+  }
 
   if (loading) {
     return (
@@ -112,18 +130,30 @@ export default function HistoricoRelatoriosPage() {
       </div>
 
       <div className="relative z-10 flex justify-center">
-        <div className={`w-full max-w-6xl transition-all duration-700 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`}>
+        <div
+          className={`w-full max-w-6xl transition-all duration-700 ${
+            mounted ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'
+          }`}
+        >
           <div className="overflow-hidden rounded-3xl border border-white/70 bg-white/90 shadow-2xl backdrop-blur-xl">
             <div className="flex items-center justify-between bg-gradient-to-r from-blue-600 to-sky-500 px-8 py-6 text-white">
               <div>
                 <h1 className="text-3xl font-bold">Relatórios enviados</h1>
-                <p className="text-sm text-blue-50">Histórico dos relatórios da sua célula</p>
+                <p className="text-sm text-blue-50">Histórico dos relatórios das suas células</p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <button onClick={() => router.push('/dashboard/relatorios')} className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30">
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard/relatorios')}
+                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+                >
                   Novo relatório
                 </button>
-                <button onClick={() => router.push('/dashboard')} className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30">
+                <button
+                  type="button"
+                  onClick={() => router.push('/dashboard')}
+                  className="rounded-xl bg-white/20 px-4 py-2 transition hover:bg-white/30"
+                >
                   Voltar
                 </button>
               </div>
@@ -131,8 +161,12 @@ export default function HistoricoRelatoriosPage() {
 
             <div className="space-y-6 p-8">
               <div className="space-y-1 text-sm text-slate-500">
-                <p>Líder: <span className="font-semibold">{perfil?.nome}</span></p>
-                <p>Célula: <span className="font-semibold">{celula?.nome}</span></p>
+                <p>
+                  Líder: <span className="font-semibold">{perfil?.nome}</span>
+                </p>
+                <p>
+                  Células: <span className="font-semibold">{celulas.map((c) => c.nome).join(', ')}</span>
+                </p>
               </div>
 
               <div className="rounded-2xl border border-slate-200 p-6">
@@ -141,8 +175,11 @@ export default function HistoricoRelatoriosPage() {
                     <h2 className="text-2xl font-bold text-slate-800">Histórico</h2>
                     <p className="text-sm text-slate-500">Visualize os relatórios que você já enviou</p>
                   </div>
-                  <select value={filtro} onChange={(e) => setFiltro(e.target.value)}
-                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
+                  <select
+                    value={filtro}
+                    onChange={(e) => setFiltro(e.target.value)}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+                  >
                     <option value="todos">Todos</option>
                     <option value="realizadas">Só realizadas</option>
                     <option value="nao-realizadas">Só não realizadas</option>
@@ -162,6 +199,12 @@ export default function HistoricoRelatoriosPage() {
                             <p className="text-lg font-bold text-slate-800">
                               {relatorio.realizou_celula ? 'Célula realizada' : 'Célula não realizada'}
                             </p>
+                            <p className="mt-1 text-sm text-slate-500">
+                              Célula:{' '}
+                              <span className="font-semibold text-slate-700">
+                                {getNomeCelula(relatorio.celula_id)}
+                              </span>
+                            </p>
                             <p className="text-sm text-slate-500">
                               Enviado em{' '}
                               <span className="font-semibold">
@@ -173,9 +216,11 @@ export default function HistoricoRelatoriosPage() {
                               </span>
                             </p>
                           </div>
-                          <span className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
-                            relatorio.realizou_celula ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
-                          }`}>
+                          <span
+                            className={`w-fit rounded-full px-3 py-1 text-sm font-semibold ${
+                              relatorio.realizou_celula ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
+                            }`}
+                          >
                             {relatorio.realizou_celula ? 'Realizada' : 'Não realizada'}
                           </span>
                         </div>
@@ -184,7 +229,9 @@ export default function HistoricoRelatoriosPage() {
                           <div>
                             <p className="text-sm text-slate-500">Data do relatório</p>
                             <p className="font-semibold text-slate-800">
-                              {new Date(relatorio.data_referencia).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+                              {new Date(relatorio.data_referencia).toLocaleDateString('pt-BR', {
+                                timeZone: 'America/Sao_Paulo',
+                              })}
                             </p>
                           </div>
                           <div>
