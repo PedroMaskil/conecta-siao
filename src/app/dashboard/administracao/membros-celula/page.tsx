@@ -17,7 +17,7 @@ const LeafletMap = dynamic(() => import('./mapa-celulas'), {
 type PerfilUsuario = {
   id: string
   nome: string
-  is_admin?: boolean | null
+  is_super_admin?: boolean | null
   is_secretaria?: boolean | null
 }
 
@@ -77,6 +77,9 @@ export default function MembrosCelulasPage() {
     visible: false,
   })
 
+  const [confirmacaoExclusao, setConfirmacaoExclusao] = useState<Celula | null>(null)
+  const [nomeConfirmacao, setNomeConfirmacao] = useState('')
+
   function showToast(message: string, type: ToastType = 'success') {
     setToast({ message, type, visible: true })
     setTimeout(() => {
@@ -99,11 +102,11 @@ export default function MembrosCelulasPage() {
 
       const { data: perfilData, error: perfilError } = await supabase
         .from('usuarios')
-        .select('id, nome, is_admin, is_secretaria')
+        .select('id, nome, is_super_admin, is_secretaria')
         .eq('id', user.id)
         .single()
 
-      if (perfilError || !perfilData || (!perfilData.is_admin && !perfilData.is_secretaria)) {
+      if (perfilError || !perfilData || (!perfilData.is_super_admin && !perfilData.is_secretaria)) {
         router.push('/dashboard')
         return
       }
@@ -127,9 +130,7 @@ export default function MembrosCelulasPage() {
       const listaCelulas = celulasData || []
       setCelulas(listaCelulas)
 
-      const liderIds = Array.from(
-        new Set(listaCelulas.map((c) => c.lider_id).filter(Boolean))
-      ) as string[]
+      const liderIds = Array.from(new Set(listaCelulas.map((c) => c.lider_id).filter(Boolean))) as string[]
 
       if (liderIds.length > 0) {
         const { data: lideresData, error: lideresError } = await supabase
@@ -221,13 +222,25 @@ export default function MembrosCelulasPage() {
     setCarregandoMembros(null)
   }
 
-  async function handleExcluirCelula(celula: Celula) {
-    const confirmar = window.confirm(
-      `Tem certeza que deseja excluir a célula "${celula.nome}"?\n\nEssa ação não poderá ser desfeita.`
-    )
+  function abrirConfirmacaoExclusao(celula: Celula) {
+    setConfirmacaoExclusao(celula)
+    setNomeConfirmacao('')
+  }
 
-    if (!confirmar) return
+  function fecharConfirmacaoExclusao() {
+    setConfirmacaoExclusao(null)
+    setNomeConfirmacao('')
+  }
 
+  async function confirmarExcluirCelula() {
+    if (!confirmacaoExclusao) return
+
+    if (nomeConfirmacao.trim() !== confirmacaoExclusao.nome) {
+      showToast('Digite exatamente o nome da célula para confirmar a exclusão.', 'error')
+      return
+    }
+
+    const celula = confirmacaoExclusao
     setExcluindoId(celula.id)
 
     try {
@@ -276,6 +289,7 @@ export default function MembrosCelulasPage() {
         return novo
       })
 
+      fecharConfirmacaoExclusao()
       showToast('Célula excluída com sucesso!', 'success')
     } catch (error) {
       console.error(error)
@@ -284,6 +298,9 @@ export default function MembrosCelulasPage() {
 
     setExcluindoId(null)
   }
+
+  const nomeConfirmadoCorreto =
+    !!confirmacaoExclusao && nomeConfirmacao.trim() === confirmacaoExclusao.nome
 
   if (loading) {
     return (
@@ -310,6 +327,57 @@ export default function MembrosCelulasPage() {
               }`}
             />
             <p className="text-sm font-medium">{toast.message}</p>
+          </div>
+        </div>
+      )}
+
+      {confirmacaoExclusao && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/50 px-4">
+          <div className="w-full max-w-lg rounded-3xl border border-red-100 bg-white p-6 shadow-2xl">
+            <div className="mb-4">
+              <h3 className="text-2xl font-bold text-slate-800">Confirmar exclusão</h3>
+              <p className="mt-2 text-sm text-slate-500">
+                Para excluir a célula <span className="font-semibold text-slate-800">"{confirmacaoExclusao.nome}"</span>,
+                digite o nome dela exatamente no campo abaixo.
+              </p>
+            </div>
+
+            <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">
+              Essa ação não poderá ser desfeita e também removerá os membros vinculados.
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-2 block text-sm font-medium text-slate-700">
+                Digite o nome da célula para confirmar
+              </label>
+              <input
+                value={nomeConfirmacao}
+                onChange={(e) => setNomeConfirmacao(e.target.value)}
+                placeholder={confirmacaoExclusao.nome}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:border-red-400 focus:ring-4 focus:ring-red-100"
+              />
+              <p className="mt-2 text-xs text-slate-500">
+                O texto deve ser exatamente: <span className="font-semibold">{confirmacaoExclusao.nome}</span>
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={fecharConfirmacaoExclusao}
+                className="rounded-2xl bg-slate-100 px-5 py-3 font-semibold text-slate-700 transition hover:bg-slate-200"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmarExcluirCelula}
+                disabled={!nomeConfirmadoCorreto || excluindoId === confirmacaoExclusao.id}
+                className="rounded-2xl bg-red-500 px-5 py-3 font-semibold text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {excluindoId === confirmacaoExclusao.id ? 'Excluindo...' : 'Excluir célula'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -465,17 +533,9 @@ export default function MembrosCelulasPage() {
                                       </span>
                                     </p>
                                     <p>
-                                      Capacidade:{' '}
+                                      Qtd. Pessoas:{' '}
                                       <span className="font-semibold text-slate-700">
                                         {celula.quantidade_pessoas ?? 0}
-                                      </span>
-                                    </p>
-                                    <p>
-                                      Coordenadas:{' '}
-                                      <span className="font-semibold text-slate-700">
-                                        {celula.latitude && celula.longitude
-                                          ? `${celula.latitude}, ${celula.longitude}`
-                                          : 'Não cadastradas'}
                                       </span>
                                     </p>
                                   </div>
@@ -492,7 +552,7 @@ export default function MembrosCelulasPage() {
 
                                   <button
                                     type="button"
-                                    onClick={() => handleExcluirCelula(celula)}
+                                    onClick={() => abrirConfirmacaoExclusao(celula)}
                                     disabled={excluindoId === celula.id}
                                     className="rounded-xl bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-60"
                                   >
