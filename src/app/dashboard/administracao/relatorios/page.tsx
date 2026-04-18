@@ -57,17 +57,34 @@ type AbaBI = 'analitico' | 'sintetico'
 
 function getInicioSemana(): string {
   const hoje = new Date()
-  const diaSemana = hoje.getDay()
-  const diff = hoje.getDate() - diaSemana + (diaSemana === 0 ? -6 : 1)
-  const segunda = new Date(hoje.setDate(diff))
-  return segunda.toISOString().split('T')[0]
+
+  const inicio = new Date(
+    hoje.getFullYear(),
+    hoje.getMonth(),
+    hoje.getDate()
+  )
+
+  inicio.setDate(inicio.getDate() - inicio.getDay())
+
+  const ano = inicio.getFullYear()
+  const mes = String(inicio.getMonth() + 1).padStart(2, '0')
+  const dia = String(inicio.getDate()).padStart(2, '0')
+
+  return `${ano}-${mes}-${dia}`
 }
 
 function getFimSemana(): string {
-  const inicio = new Date(getInicioSemana())
-  const fim = new Date(inicio)
-  fim.setDate(inicio.getDate() + 6)
-  return fim.toISOString().split('T')[0]
+  const inicioTexto = getInicioSemana()
+  const [ano, mes, dia] = inicioTexto.split('-').map(Number)
+
+  const fim = new Date(ano, mes - 1, dia)
+  fim.setDate(fim.getDate() + 6)
+
+  const anoFim = fim.getFullYear()
+  const mesFim = String(fim.getMonth() + 1).padStart(2, '0')
+  const diaFim = String(fim.getDate()).padStart(2, '0')
+
+  return `${anoFim}-${mesFim}-${diaFim}`
 }
 
 function formatarTelefone(telefone: string): string {
